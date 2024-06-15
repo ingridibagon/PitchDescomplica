@@ -1,0 +1,1003 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.0.0-rc.4/css/tom-select.min.css" integrity="sha512-43fHB3GLgZfz8QXl1RPQ8O66oIgv3po9cJ5erMt1c4QISq9dYb195T3vr5ImnJPXuVroKcGBPXBFKETW8jrPNQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.0.0-rc.4/js/tom-select.complete.js" integrity="sha512-jeF9CfnvzDiw9G9xiksVjxR2lib44Gnovvkv+3CgCG6NXCD4gqlA5nDAVW5WjpA+i+/zKsUWV5xNEbW1X/HH0Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 600px;
+                 background-color: #ffffff;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+             #loadingBar {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 width: 100%;
+                 height: 600px;
+                 background-color:rgba(200,200,200,0.8);
+                 -webkit-transition: all 0.5s ease;
+                 -moz-transition: all 0.5s ease;
+                 -ms-transition: all 0.5s ease;
+                 -o-transition: all 0.5s ease;
+                 transition: all 0.5s ease;
+                 opacity:1;
+             }
+
+             #bar {
+                 position:absolute;
+                 top:0px;
+                 left:0px;
+                 width:20px;
+                 height:20px;
+                 margin:auto auto auto auto;
+                 border-radius:11px;
+                 border:2px solid rgba(30,30,30,0.05);
+                 background: rgb(0, 173, 246); /* Old browsers */
+                 box-shadow: 2px 0px 4px rgba(0,0,0,0.4);
+             }
+
+             #border {
+                 position:absolute;
+                 top:10px;
+                 left:10px;
+                 width:500px;
+                 height:23px;
+                 margin:auto auto auto auto;
+                 box-shadow: 0px 0px 4px rgba(0,0,0,0.2);
+                 border-radius:10px;
+             }
+
+             #text {
+                 position:absolute;
+                 top:8px;
+                 left:530px;
+                 width:30px;
+                 height:50px;
+                 margin:auto auto auto auto;
+                 font-size:22px;
+                 color: #000000;
+             }
+
+             div.outerBorder {
+                 position:relative;
+                 top:400px;
+                 width:600px;
+                 height:44px;
+                 margin:auto auto auto auto;
+                 border:8px solid rgba(0,0,0,0.1);
+                 background: rgb(252,252,252); /* Old browsers */
+                 background: -moz-linear-gradient(top,  rgba(252,252,252,1) 0%, rgba(237,237,237,1) 100%); /* FF3.6+ */
+                 background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(252,252,252,1)), color-stop(100%,rgba(237,237,237,1))); /* Chrome,Safari4+ */
+                 background: -webkit-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Chrome10+,Safari5.1+ */
+                 background: -o-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* Opera 11.10+ */
+                 background: -ms-linear-gradient(top,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* IE10+ */
+                 background: linear-gradient(to bottom,  rgba(252,252,252,1) 0%,rgba(237,237,237,1) 100%); /* W3C */
+                 filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#fcfcfc', endColorstr='#ededed',GradientType=0 ); /* IE6-9 */
+                 border-radius:72px;
+                 box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
+             }
+             
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+                <div id="select-menu" class="card-header">
+                    <div class="row no-gutters">
+                        <div class="col-10 pb-2">
+                            <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            onchange="selectNode([value]);"
+                            id="select-node"
+                            placeholder="Select node..."
+                            >
+                                <option selected>Select a Node by ID</option>
+                                
+                                    <option value="Alan Augusto Silva Sousa">Alan Augusto Silva Sousa</option>
+                                
+                                    <option value="Lucas Wardil">Lucas Wardil</option>
+                                
+                                    <option value="Bryan Carolino Muniz Barbosa">Bryan Carolino Muniz Barbosa</option>
+                                
+                                    <option value="Gustavo Henrique Silva">Gustavo Henrique Silva</option>
+                                
+                                    <option value="João Rafael De Souza Reis">João Rafael De Souza Reis</option>
+                                
+                                    <option value="Daniel De Assis Rodrigues">Daniel De Assis Rodrigues</option>
+                                
+                                    <option value="Ian Magalhães Braga">Ian Magalhães Braga</option>
+                                
+                                    <option value="Alessandra Friedrich Lutz">Alessandra Friedrich Lutz</option>
+                                
+                                    <option value="Allan Gabriel Marques Lima">Allan Gabriel Marques Lima</option>
+                                
+                                    <option value="Mário Mazzoni">Mário Mazzoni</option>
+                                
+                                    <option value="André Felipe Alves Alencar">André Felipe Alves Alencar</option>
+                                
+                                    <option value="Deivide Kenede Esteves">Deivide Kenede Esteves</option>
+                                
+                                    <option value="Juliana Rocha Freitas">Juliana Rocha Freitas</option>
+                                
+                                    <option value="Paulo Henrique Miranda Ferreira">Paulo Henrique Miranda Ferreira</option>
+                                
+                                    <option value="Samuel Mendes De Vasconcelos">Samuel Mendes De Vasconcelos</option>
+                                
+                                    <option value="Túlio Victor De Oliveira">Túlio Victor De Oliveira</option>
+                                
+                                    <option value="Welesson Henrique Natanal Silva">Welesson Henrique Natanal Silva</option>
+                                
+                                    <option value="Tassylla Oliveira Fonseca">Tassylla Oliveira Fonseca</option>
+                                
+                                    <option value="Ana Carolina Dos Santos">Ana Carolina Dos Santos</option>
+                                
+                                    <option value="Rogério Paniago">Rogério Paniago</option>
+                                
+                                    <option value="Daniel Henriques Silva Fonseca">Daniel Henriques Silva Fonseca</option>
+                                
+                                    <option value="Guilherme Rodrigues Fontenele">Guilherme Rodrigues Fontenele</option>
+                                
+                                    <option value="Lucas Polesi Trindade">Lucas Polesi Trindade</option>
+                                
+                                    <option value="André Marques Da Costa">André Marques Da Costa</option>
+                                
+                                    <option value="Leonardo Neves">Leonardo Neves</option>
+                                
+                                    <option value="Erick Ribeiro De Carvalho">Erick Ribeiro De Carvalho</option>
+                                
+                                    <option value="Poliana Marques Berto">Poliana Marques Berto</option>
+                                
+                                    <option value="Lucas Felipe Bezerra De Melo Oliveira">Lucas Felipe Bezerra De Melo Oliveira</option>
+                                
+                                    <option value="Augusto Vieira D’Assunção Freitas">Augusto Vieira D’Assunção Freitas</option>
+                                
+                                    <option value="Leandro Malard">Leandro Malard</option>
+                                
+                                    <option value="Willyan Cardoso Santos Da Silva">Willyan Cardoso Santos Da Silva</option>
+                                
+                                    <option value="Danilo Machado">Danilo Machado</option>
+                                
+                                    <option value="Barbara Alves Land Ferreira">Barbara Alves Land Ferreira</option>
+                                
+                                    <option value="Simone Alexandre">Simone Alexandre</option>
+                                
+                                    <option value="Luiz Cláudio Carvalho">Luiz Cláudio Carvalho</option>
+                                
+                                    <option value="Davi Vasconcelos Coura Ferreira">Davi Vasconcelos Coura Ferreira</option>
+                                
+                                    <option value="Fabrício Polignano Nogueira">Fabrício Polignano Nogueira</option>
+                                
+                                    <option value="Gabriel De Paula Barbosa">Gabriel De Paula Barbosa</option>
+                                
+                                    <option value="Leonardo Rodrigues Marques">Leonardo Rodrigues Marques</option>
+                                
+                                    <option value="Luiz Claudio De Carvalho">Luiz Claudio De Carvalho</option>
+                                
+                                    <option value="Breno Barbosa Moreira">Breno Barbosa Moreira</option>
+                                
+                                    <option value="Karla Balzuweit">Karla Balzuweit</option>
+                                
+                                    <option value="Jose Coelho Neto">Jose Coelho Neto</option>
+                                
+                                    <option value="Bruno Guimarães Santana Gomes">Bruno Guimarães Santana Gomes</option>
+                                
+                                    <option value="Ubirajara Agero">Ubirajara Agero</option>
+                                
+                                    <option value="João Renato Vaz Pires">João Renato Vaz Pires</option>
+                                
+                                    <option value="Sabrina Ferreira Dos Santos">Sabrina Ferreira Dos Santos</option>
+                                
+                                    <option value="José Maria Caquito Junior">José Maria Caquito Junior</option>
+                                
+                                    <option value="Maria Luiza Barbosa Pertence">Maria Luiza Barbosa Pertence</option>
+                                
+                                    <option value="Daniel Aguiar Pinto">Daniel Aguiar Pinto</option>
+                                
+                                    <option value="Gláuber Dorsch">Gláuber Dorsch</option>
+                                
+                                    <option value="Luiz Carlos Andrade De Miranda">Luiz Carlos Andrade De Miranda</option>
+                                
+                                    <option value="Vitor Guilherme De Souza Pereira">Vitor Guilherme De Souza Pereira</option>
+                                
+                                    <option value="Arthur Cesar Dinali Viglioni">Arthur Cesar Dinali Viglioni</option>
+                                
+                                    <option value="Diego Sier De Faria">Diego Sier De Faria</option>
+                                
+                                    <option value="Ado Jorio">Ado Jorio</option>
+                                
+                                    <option value="Jane Elisa Rocha Guimarães">Jane Elisa Rocha Guimarães</option>
+                                
+                                    <option value="Lucas Valente De Carvalho">Lucas Valente De Carvalho</option>
+                                
+                                    <option value="Rafael Battistella Nadas">Rafael Battistella Nadas</option>
+                                
+                                    <option value="Paula D’Ávila Machado">Paula D’Ávila Machado</option>
+                                
+                                    <option value="Felipe De Morais Murta">Felipe De Morais Murta</option>
+                                
+                                    <option value="Leonardo Campos">Leonardo Campos</option>
+                                
+                                    <option value="Lucas Liberal Fonseca">Lucas Liberal Fonseca</option>
+                                
+                                    <option value="Gabriel Henrique Bargas Melo">Gabriel Henrique Bargas Melo</option>
+                                
+                                    <option value="Maria Clara Godinho De Oliveira">Maria Clara Godinho De Oliveira</option>
+                                
+                                    <option value="Tiago Campolina Barbosa">Tiago Campolina Barbosa</option>
+                                
+                                    <option value="Yuri Hayashi Isayama">Yuri Hayashi Isayama</option>
+                                
+                                    <option value="Fernanda Silva De Oliveira">Fernanda Silva De Oliveira</option>
+                                
+                                    <option value="Silvia Helena Alencar">Silvia Helena Alencar</option>
+                                
+                                    <option value="Lucas Galvão De Jesus">Lucas Galvão De Jesus</option>
+                                
+                                    <option value="Paola Gessy Oliveira De Melo">Paola Gessy Oliveira De Melo</option>
+                                
+                                    <option value="Pedro Brito Cavalcanti De Albuquerque">Pedro Brito Cavalcanti De Albuquerque</option>
+                                
+                                    <option value="Thais Suelen Marques De Souza">Thais Suelen Marques De Souza</option>
+                                
+                                    <option value="Barbara Silva Castelões">Barbara Silva Castelões</option>
+                                
+                                    <option value="Túlio De Pinho Freitas">Túlio De Pinho Freitas</option>
+                                
+                                    <option value="Bonnie Romano Zaire">Bonnie Romano Zaire</option>
+                                
+                                    <option value="Fernando Luiz Alves Jardim">Fernando Luiz Alves Jardim</option>
+                                
+                                    <option value="Carlos Basílio">Carlos Basílio</option>
+                                
+                                    <option value="Lucas Olimpio Michel Machado">Lucas Olimpio Michel Machado</option>
+                                
+                                    <option value="João Alves De Oliveira Neto">João Alves De Oliveira Neto</option>
+                                
+                                    <option value="Juliana Assunção Pereira De Figueiredo">Juliana Assunção Pereira De Figueiredo</option>
+                                
+                                    <option value="Monica Esperanza Bolivar Guarin">Monica Esperanza Bolivar Guarin</option>
+                                
+                                    <option value="Franco Sauvisky">Franco Sauvisky</option>
+                                
+                                    <option value="Bernardo Neves">Bernardo Neves</option>
+                                
+                                    <option value="Luana De Avila Barbosa Oliveira">Luana De Avila Barbosa Oliveira</option>
+                                
+                                    <option value="Karolline Aparecida De Souza Araújo">Karolline Aparecida De Souza Araújo</option>
+                                
+                                    <option value="Gabriel Batista Vilaça">Gabriel Batista Vilaça</option>
+                                
+                                    <option value="Nelson Yokomizo">Nelson Yokomizo</option>
+                                
+                                    <option value="Filipe Henrique De Castro Menezes">Filipe Henrique De Castro Menezes</option>
+                                
+                                    <option value="José Roberto Pereira Junior">José Roberto Pereira Junior</option>
+                                
+                                    <option value="Lucas Mourão Vieira Montese">Lucas Mourão Vieira Montese</option>
+                                
+                                    <option value="Gabriel Henrique Aguiar Schiess">Gabriel Henrique Aguiar Schiess</option>
+                                
+                                    <option value="Gerald Weber">Gerald Weber</option>
+                                
+                                    <option value="Daniel Batista De Jesus">Daniel Batista De Jesus</option>
+                                
+                                    <option value="Luciano Gabriel Silva">Luciano Gabriel Silva</option>
+                                
+                                    <option value="Guilherme Antonio De Souza">Guilherme Antonio De Souza</option>
+                                
+                                    <option value="Emmanuel Araújo">Emmanuel Araújo</option>
+                                
+                                    <option value="Henrique De Melo Mansur">Henrique De Melo Mansur</option>
+                                
+                                    <option value="Walber Hugo de Brito">Walber Hugo de Brito</option>
+                                
+                                    <option value="Jesse De Oliveira Rodrigues Neto">Jesse De Oliveira Rodrigues Neto</option>
+                                
+                                    <option value="Felipe Amorim Borher">Felipe Amorim Borher</option>
+                                
+                                    <option value="Vitor Assunção Moreira Lima">Vitor Assunção Moreira Lima</option>
+                                
+                                    <option value="Isadora Costa Coppo">Isadora Costa Coppo</option>
+                                
+                                    <option value="Ariete Righi">Ariete Righi</option>
+                                
+                                    <option value="Marcos Pimenta">Marcos Pimenta</option>
+                                
+                                    <option value="Jhonatan Felipe Figueredo Vitor">Jhonatan Felipe Figueredo Vitor</option>
+                                
+                                    <option value="Letícia Lima Rios Rioga">Letícia Lima Rios Rioga</option>
+                                
+                                    <option value="Thiago Seniuk Carrara">Thiago Seniuk Carrara</option>
+                                
+                                    <option value="Fabio Cardoso Ofredi Maia">Fabio Cardoso Ofredi Maia</option>
+                                
+                                    <option value="Jéssica Santos Lemos">Jéssica Santos Lemos</option>
+                                
+                                    <option value="João Batista Pinto Junior">João Batista Pinto Junior</option>
+                                
+                                    <option value="José Rachid Mohallem">José Rachid Mohallem</option>
+                                
+                                    <option value="Miguel Felipe De Abreu Rocha E Senra">Miguel Felipe De Abreu Rocha E Senra</option>
+                                
+                                    <option value="Lívia Siman">Lívia Siman</option>
+                                
+                                    <option value="Monique Hilda Costa">Monique Hilda Costa</option>
+                                
+                                    <option value="Kennedy Batista Gonçalves">Kennedy Batista Gonçalves</option>
+                                
+                                    <option value="Iara Apolinário Borges">Iara Apolinário Borges</option>
+                                
+                                    <option value="João Victor Roriz Saboya">João Victor Roriz Saboya</option>
+                                
+                                    <option value="Gustavo Guerrero">Gustavo Guerrero</option>
+                                
+                                    <option value="Kevin Leonardo Amaral Resende">Kevin Leonardo Amaral Resende</option>
+                                
+                                    <option value="Luiza Alkmim D’Ávila Fonseca">Luiza Alkmim D’Ávila Fonseca</option>
+                                
+                                    <option value="Guilherme Augusto Dias Monteiro">Guilherme Augusto Dias Monteiro</option>
+                                
+                                    <option value="Lucas De Souza Menicucci">Lucas De Souza Menicucci</option>
+                                
+                                    <option value="João Victor Vieira E Sá Tolentino">João Victor Vieira E Sá Tolentino</option>
+                                
+                                    <option value="Bruce Vega">Bruce Vega</option>
+                                
+                                    <option value="Marcos Paulo Moreira">Marcos Paulo Moreira</option>
+                                
+                                    <option value="Bruno Avellar Couto E Silva">Bruno Avellar Couto E Silva</option>
+                                
+                                    <option value="Isaac Max Pereira">Isaac Max Pereira</option>
+                                
+                                    <option value="João Pedro Carvalho Corrêa">João Pedro Carvalho Corrêa</option>
+                                
+                                    <option value="Thaisa Carneiro Da Cunha Guio">Thaisa Carneiro Da Cunha Guio</option>
+                                
+                                    <option value="Joás Jardim Marques Lacerda">Joás Jardim Marques Lacerda</option>
+                                
+                                    <option value="Carlos Henrique Monken">Carlos Henrique Monken</option>
+                                
+                                    <option value="Matheus Aleluia Rodrigues">Matheus Aleluia Rodrigues</option>
+                                
+                                    <option value="Alexandre Gutenberg Da Costa Moura">Alexandre Gutenberg Da Costa Moura</option>
+                                
+                                    <option value="Julia Oliveira Santos">Julia Oliveira Santos</option>
+                                
+                                    <option value="Maria Carolina Aguiar">Maria Carolina Aguiar</option>
+                                
+                                    <option value="Maria Vitoria Tiago Inocêncio">Maria Vitoria Tiago Inocêncio</option>
+                                
+                                    <option value="Nayara Gonçalves Gusmão">Nayara Gonçalves Gusmão</option>
+                                
+                                    <option value="Ricardo Wagner Nunes">Ricardo Wagner Nunes</option>
+                                
+                                    <option value="Dayvison Nícolas Santos Alves">Dayvison Nícolas Santos Alves</option>
+                                
+                                    <option value="Hiago Maurilio Lopes Carvalho">Hiago Maurilio Lopes Carvalho</option>
+                                
+                                    <option value="Livia Maria Barros Campos">Livia Maria Barros Campos</option>
+                                
+                                    <option value="Ana Maria de Paula">Ana Maria de Paula</option>
+                                
+                                    <option value="Gladystone Rocha Da Fonseca">Gladystone Rocha Da Fonseca</option>
+                                
+                                    <option value="Danielle Cristina Teles Ferreira">Danielle Cristina Teles Ferreira</option>
+                                
+                                    <option value="Mychel Gonçalves Silva">Mychel Gonçalves Silva</option>
+                                
+                                    <option value="Lucas Coelho Mitre">Lucas Coelho Mitre</option>
+                                
+                                    <option value="Luiz Gustavo Cançado">Luiz Gustavo Cançado</option>
+                                
+                                    <option value="Catarina Carvalho Haase">Catarina Carvalho Haase</option>
+                                
+                                    <option value="Douglas Dos Santos Ribeiro">Douglas Dos Santos Ribeiro</option>
+                                
+                                    <option value="Gustavo Henrique Rocha Soares">Gustavo Henrique Rocha Soares</option>
+                                
+                                    <option value="Monalisa Kairine Pereira">Monalisa Kairine Pereira</option>
+                                
+                                    <option value="Luisa Vargas Costa Freitas">Luisa Vargas Costa Freitas</option>
+                                
+                                    <option value="Angelo Malachias">Angelo Malachias</option>
+                                
+                                    <option value="Tulio Cesar Gonçalves Goulart">Tulio Cesar Gonçalves Goulart</option>
+                                
+                                    <option value="Yuri Bernardes Marçal">Yuri Bernardes Marçal</option>
+                                
+                                    <option value="Eduarda Policarpo Magalhães Campos">Eduarda Policarpo Magalhães Campos</option>
+                                
+                                    <option value="Gabriel Rodrigues Fontenele">Gabriel Rodrigues Fontenele</option>
+                                
+                                    <option value="Maria Victoria Heiderick Machado">Maria Victoria Heiderick Machado</option>
+                                
+                                    <option value="Luiz Claudio De Oliveira Gomes Junior">Luiz Claudio De Oliveira Gomes Junior</option>
+                                
+                                    <option value="Raphael Drumond">Raphael Drumond</option>
+                                
+                                    <option value="Thiago Firpe Santos Souza">Thiago Firpe Santos Souza</option>
+                                
+                                    <option value="Alessandra Chioquetta">Alessandra Chioquetta</option>
+                                
+                                    <option value="Breno Martins Dos Anjos">Breno Martins Dos Anjos</option>
+                                
+                                    <option value="Rodrigo Ferreira Saliba">Rodrigo Ferreira Saliba</option>
+                                
+                                    <option value="Vitor Monteiro Pereira">Vitor Monteiro Pereira</option>
+                                
+                                    <option value="Marcos Gabriel Alpino Da Silva">Marcos Gabriel Alpino Da Silva</option>
+                                
+                                    <option value="Reinaldo Vianna">Reinaldo Vianna</option>
+                                
+                                    <option value="Mateus Batista Pedrolongo">Mateus Batista Pedrolongo</option>
+                                
+                                    <option value="Wagner Nunes Rodrigues">Wagner Nunes Rodrigues</option>
+                                
+                                    <option value="Tarik Della Santina Mohallem">Tarik Della Santina Mohallem</option>
+                                
+                                    <option value="Mateus Dos Santos Cardoso">Mateus Dos Santos Cardoso</option>
+                                
+                                    <option value="Edmar Soares">Edmar Soares</option>
+                                
+                                    <option value="Pedro Henrique Rezende Gonçalves">Pedro Henrique Rezende Gonçalves</option>
+                                
+                                    <option value="Mayara Kalita Moura Gomides">Mayara Kalita Moura Gomides</option>
+                                
+                                    <option value="Gabriel Franco">Gabriel Franco</option>
+                                
+                                    <option value="Paulo Henrique Amaral">Paulo Henrique Amaral</option>
+                                
+                                    <option value="Sebastião de Pádua">Sebastião de Pádua</option>
+                                
+                                    <option value="Taynara Vitória De Souza">Taynara Vitória De Souza</option>
+                                
+                                    <option value="Igo Gomes Mendes">Igo Gomes Mendes</option>
+                                
+                                    <option value="Patrick Matheus Ramos Lima">Patrick Matheus Ramos Lima</option>
+                                
+                                    <option value="Pedro Gabriel De Souza Das Dores">Pedro Gabriel De Souza Das Dores</option>
+                                
+                                    <option value="Thomas Miler Dos Santos">Thomas Miler Dos Santos</option>
+                                
+                                    <option value="Wagner Corradi">Wagner Corradi</option>
+                                
+                                    <option value="Francisco Maia">Francisco Maia</option>
+                                
+                                    <option value="Pedro Henrique Ferreira De Britto Braz">Pedro Henrique Ferreira De Britto Braz</option>
+                                
+                                    <option value="Mateus De Souza Angelo">Mateus De Souza Angelo</option>
+                                
+                                    <option value="João Francisco Gardin De Carvalho">João Francisco Gardin De Carvalho</option>
+                                
+                                    <option value="Victor Hugo Silva De Paiva">Victor Hugo Silva De Paiva</option>
+                                
+                                    <option value="Juan Carlos González Pérez">Juan Carlos González Pérez</option>
+                                
+                                    <option value="Vinicius Aguiar Cardoso Godinho Baliza">Vinicius Aguiar Cardoso Godinho Baliza</option>
+                                
+                                    <option value="Vitor De Melo Almada">Vitor De Melo Almada</option>
+                                
+                                    <option value="Paulo Sérgio Guimarães">Paulo Sérgio Guimarães</option>
+                                
+                                    <option value="Henrique Felipe De Melo">Henrique Felipe De Melo</option>
+                                
+                                    <option value="Luis Elvis Cano Fernandez">Luis Elvis Cano Fernandez</option>
+                                
+                                    <option value="Juliana Caldeira Brant">Juliana Caldeira Brant</option>
+                                
+                                    <option value="Rafael Ricardo Rojas Lopez">Rafael Ricardo Rojas Lopez</option>
+                                
+                                    <option value="Ana Luiza Novaes Dias">Ana Luiza Novaes Dias</option>
+                                
+                                    <option value="Ronald Dickman">Ronald Dickman</option>
+                                
+                                    <option value="Guilherme Eduardo Freire Oliveira">Guilherme Eduardo Freire Oliveira</option>
+                                
+                                    <option value="Leonardo Santos Lopes">Leonardo Santos Lopes</option>
+                                
+                                    <option value="Tiago Venzel Rosembach">Tiago Venzel Rosembach</option>
+                                
+                                    <option value="Ingrid Carolina Ibagon Pardo">Ingrid Carolina Ibagon Pardo</option>
+                                
+                                    <option value="Ana Paula Gomes Pereira">Ana Paula Gomes Pereira</option>
+                                
+                                    <option value="Pablo Saldanha">Pablo Saldanha</option>
+                                
+                                    <option value="Tamiris Roberta Calixto">Tamiris Roberta Calixto</option>
+                                
+                                    <option value="Arilton Raimundo Souza Macedo">Arilton Raimundo Souza Macedo</option>
+                                
+                                    <option value="João Antônio Plascak">João Antônio Plascak</option>
+                                
+                                    <option value="Gabriel De Albuquerque Silva">Gabriel De Albuquerque Silva</option>
+                                
+                                    <option value="Bernardo Pereira Lima Ferreira">Bernardo Pereira Lima Ferreira</option>
+                                
+                                    <option value="João Francisco Coelho">João Francisco Coelho</option>
+                                
+                                    <option value="José Eugênio Paes Scott Da Costa">José Eugênio Paes Scott Da Costa</option>
+                                
+                                    <option value="Olavo Cosme Da Silva">Olavo Cosme Da Silva</option>
+                                
+                                    <option value="Alexis Aguirre">Alexis Aguirre</option>
+                                
+                                    <option value="Davi Bicalho Da Silva">Davi Bicalho Da Silva</option>
+                                
+                                    <option value="Lucas Mol">Lucas Mol</option>
+                                
+                                    <option value="Luiz Felipe Pedro Soares">Luiz Felipe Pedro Soares</option>
+                                
+                                    <option value="Enderson Emiliano Dos Reis">Enderson Emiliano Dos Reis</option>
+                                
+                                    <option value="Roberto Paniago">Roberto Paniago</option>
+                                
+                                    <option value="Gustavo Foscolo De Moura Gomes">Gustavo Foscolo De Moura Gomes</option>
+                                
+                                    <option value="Everton Pereira De Andrade">Everton Pereira De Andrade</option>
+                                
+                                    <option value="Gustavo Safar">Gustavo Safar</option>
+                                
+                                    <option value="Rodrigo Gribel">Rodrigo Gribel</option>
+                                
+                                    <option value="Renato Veloso Amaral Boaventura">Renato Veloso Amaral Boaventura</option>
+                                
+                                    <option value="Tiago Amarante De Barros Cardoso">Tiago Amarante De Barros Cardoso</option>
+                                
+                                    <option value="Cláudio Laudares Passos Silva">Cláudio Laudares Passos Silva</option>
+                                
+                                    <option value="Gabriel Bruno Garcia De Souza">Gabriel Bruno Garcia De Souza</option>
+                                
+                                    <option value="Von Braun Nascimento">Von Braun Nascimento</option>
+                                
+                                    <option value="Maxim Lavrentovich">Maxim Lavrentovich</option>
+                                
+                                    <option value="Mateus Angelo">Mateus Angelo</option>
+                                
+                                    <option value="Pedro Gonçalves De Oliveira">Pedro Gonçalves De Oliveira</option>
+                                
+                                    <option value="Antônio Sergio Pires">Antônio Sergio Pires</option>
+                                
+                                    <option value="Tassius Temistocles Lins Maciel">Tassius Temistocles Lins Maciel</option>
+                                
+                                    <option value="Marcelo Terra Cunha">Marcelo Terra Cunha</option>
+                                
+                                    <option value="Bruno Henrique Da Silva E Mendonça">Bruno Henrique Da Silva E Mendonça</option>
+                                
+                                    <option value="Helio Chacham">Helio Chacham</option>
+                                
+                                    <option value="Camila Maria De Sousa Lacerda">Camila Maria De Sousa Lacerda</option>
+                                
+                                    <option value="Flávio Orlando Plentz">Flávio Orlando Plentz</option>
+                                
+                                    <option value="Paulo Henrique Ribeiro Amaral">Paulo Henrique Ribeiro Amaral</option>
+                                
+                                    <option value="Juan Carlos González Perez">Juan Carlos González Perez</option>
+                                
+                                    <option value="Wescley Walison Valeriano">Wescley Walison Valeriano</option>
+                                
+                                    <option value="Barbara Regina Melo Ribeiro">Barbara Regina Melo Ribeiro</option>
+                                
+                                    <option value="Bruno Berganholi Dias">Bruno Berganholi Dias</option>
+                                
+                                    <option value="Daisy Andrews Pereira">Daisy Andrews Pereira</option>
+                                
+                                    <option value="Davi Ribeiro Matos Tiburcio da Silva">Davi Ribeiro Matos Tiburcio da Silva</option>
+                                
+                                    <option value="Dhieniffer Luane Silva Santos">Dhieniffer Luane Silva Santos</option>
+                                
+                                    <option value="Isabela Santos Silveira">Isabela Santos Silveira</option>
+                                
+                                    <option value="Izabela Gonçalves Diniz">Izabela Gonçalves Diniz</option>
+                                
+                                    <option value="João Felipe Pinheiro Badaró Moreira">João Felipe Pinheiro Badaró Moreira</option>
+                                
+                                    <option value="João Felippe Nunes Rocha">João Felippe Nunes Rocha</option>
+                                
+                                    <option value="João Vitor Teixeira do Prado Vital">João Vitor Teixeira do Prado Vital</option>
+                                
+                                    <option value="Katson Wendell Oliveira Arévola">Katson Wendell Oliveira Arévola</option>
+                                
+                                    <option value="Lucas Martinho Bicalho Belo">Lucas Martinho Bicalho Belo</option>
+                                
+                                    <option value="Luciano da Silva Vilarins">Luciano da Silva Vilarins</option>
+                                
+                                    <option value="Luiz Henrique de Paula Santos">Luiz Henrique de Paula Santos</option>
+                                
+                                    <option value="Natalia Gonçalves de Paula Silva">Natalia Gonçalves de Paula Silva</option>
+                                
+                                    <option value="Noélia Yesenia Rojas Cruz">Noélia Yesenia Rojas Cruz</option>
+                                
+                                    <option value="Pedro Inacio de Carvalho Pereira Lacerda">Pedro Inacio de Carvalho Pereira Lacerda</option>
+                                
+                                    <option value="Renan Mello Magalhães">Renan Mello Magalhães</option>
+                                
+                                    <option value="Vicente Vecce Lessa Navega Dias">Vicente Vecce Lessa Navega Dias</option>
+                                
+                                    <option value="Vitor Augusto Firmino Torres">Vitor Augusto Firmino Torres</option>
+                                
+                                    <option value="Hiram Souza Marinho Rodrigues">Hiram Souza Marinho Rodrigues</option>
+                                
+                                    <option value="Marcelo Francis Fernandes Alecrim">Marcelo Francis Fernandes Alecrim</option>
+                                
+                            </select>
+                        </div>
+                        <div class="col-2 pb-2">
+                            <button type="button" class="btn btn-primary btn-block" onclick="neighbourhoodHighlight({nodes: []});">Reset Selection</button>
+                        </div>
+                    </div>
+                </div>
+            
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+            <div id="loadingBar">
+              <div class="outerBorder">
+                <div id="text">0%</div>
+                <div id="border">
+                  <div id="bar"></div>
+                </div>
+              </div>
+            </div>
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+                  new TomSelect("#select-node",{
+                      create: false,
+                      sortField: {
+                          field: "text",
+                          direction: "asc"
+                      }
+                  });
+              
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"color": "orange", "id": "Alan Augusto Silva Sousa", "label": "Alan Augusto Silva Sousa", "shape": "dot", "size": 10, "title": "Alan Augusto Silva Sousa"}, {"color": "red", "id": "Lucas Wardil", "label": "Lucas Wardil", "shape": "dot", "size": 10, "title": "Lucas Wardil"}, {"color": "orange", "id": "Bryan Carolino Muniz Barbosa", "label": "Bryan Carolino Muniz Barbosa", "shape": "dot", "size": 10, "title": "Bryan Carolino Muniz Barbosa"}, {"color": "orange", "id": "Gustavo Henrique Silva", "label": "Gustavo Henrique Silva", "shape": "dot", "size": 10, "title": "Gustavo Henrique Silva"}, {"color": "orange", "id": "Jo\u00e3o Rafael De Souza Reis", "label": "Jo\u00e3o Rafael De Souza Reis", "shape": "dot", "size": 10, "title": "Jo\u00e3o Rafael De Souza Reis"}, {"color": "green", "id": "Daniel De Assis Rodrigues", "label": "Daniel De Assis Rodrigues", "shape": "dot", "size": 10, "title": "Daniel De Assis Rodrigues"}, {"color": "green", "id": "Ian Magalh\u00e3es Braga", "label": "Ian Magalh\u00e3es Braga", "shape": "dot", "size": 10, "title": "Ian Magalh\u00e3es Braga"}, {"color": "blue", "id": "Alessandra Friedrich Lutz", "label": "Alessandra Friedrich Lutz", "shape": "dot", "size": 10, "title": "Alessandra Friedrich Lutz"}, {"color": "orange", "id": "Allan Gabriel Marques Lima", "label": "Allan Gabriel Marques Lima", "shape": "dot", "size": 10, "title": "Allan Gabriel Marques Lima"}, {"color": "red", "id": "M\u00e1rio Mazzoni", "label": "M\u00e1rio Mazzoni", "shape": "dot", "size": 10, "title": "M\u00e1rio Mazzoni"}, {"color": "orange", "id": "Andr\u00e9 Felipe Alves Alencar", "label": "Andr\u00e9 Felipe Alves Alencar", "shape": "dot", "size": 10, "title": "Andr\u00e9 Felipe Alves Alencar"}, {"color": "green", "id": "Deivide Kenede Esteves", "label": "Deivide Kenede Esteves", "shape": "dot", "size": 10, "title": "Deivide Kenede Esteves"}, {"color": "green", "id": "Juliana Rocha Freitas", "label": "Juliana Rocha Freitas", "shape": "dot", "size": 10, "title": "Juliana Rocha Freitas"}, {"color": "green", "id": "Paulo Henrique Miranda Ferreira", "label": "Paulo Henrique Miranda Ferreira", "shape": "dot", "size": 10, "title": "Paulo Henrique Miranda Ferreira"}, {"color": "green", "id": "Samuel Mendes De Vasconcelos", "label": "Samuel Mendes De Vasconcelos", "shape": "dot", "size": 10, "title": "Samuel Mendes De Vasconcelos"}, {"color": "green", "id": "T\u00falio Victor De Oliveira", "label": "T\u00falio Victor De Oliveira", "shape": "dot", "size": 10, "title": "T\u00falio Victor De Oliveira"}, {"color": "green", "id": "Welesson Henrique Natanal Silva", "label": "Welesson Henrique Natanal Silva", "shape": "dot", "size": 10, "title": "Welesson Henrique Natanal Silva"}, {"color": "blue", "id": "Tassylla Oliveira Fonseca", "label": "Tassylla Oliveira Fonseca", "shape": "dot", "size": 10, "title": "Tassylla Oliveira Fonseca"}, {"color": "orange", "id": "Ana Carolina Dos Santos", "label": "Ana Carolina Dos Santos", "shape": "dot", "size": 10, "title": "Ana Carolina Dos Santos"}, {"color": "red", "id": "Rog\u00e9rio Paniago", "label": "Rog\u00e9rio Paniago", "shape": "dot", "size": 10, "title": "Rog\u00e9rio Paniago"}, {"color": "orange", "id": "Daniel Henriques Silva Fonseca", "label": "Daniel Henriques Silva Fonseca", "shape": "dot", "size": 10, "title": "Daniel Henriques Silva Fonseca"}, {"color": "green", "id": "Guilherme Rodrigues Fontenele", "label": "Guilherme Rodrigues Fontenele", "shape": "dot", "size": 10, "title": "Guilherme Rodrigues Fontenele"}, {"color": "green", "id": "Lucas Polesi Trindade", "label": "Lucas Polesi Trindade", "shape": "dot", "size": 10, "title": "Lucas Polesi Trindade"}, {"color": "orange", "id": "Andr\u00e9 Marques Da Costa", "label": "Andr\u00e9 Marques Da Costa", "shape": "dot", "size": 10, "title": "Andr\u00e9 Marques Da Costa"}, {"color": "red", "id": "Leonardo Neves", "label": "Leonardo Neves", "shape": "dot", "size": 10, "title": "Leonardo Neves"}, {"color": "orange", "id": "Erick Ribeiro De Carvalho", "label": "Erick Ribeiro De Carvalho", "shape": "dot", "size": 10, "title": "Erick Ribeiro De Carvalho"}, {"color": "orange", "id": "Poliana Marques Berto", "label": "Poliana Marques Berto", "shape": "dot", "size": 10, "title": "Poliana Marques Berto"}, {"color": "green", "id": "Lucas Felipe Bezerra De Melo Oliveira", "label": "Lucas Felipe Bezerra De Melo Oliveira", "shape": "dot", "size": 10, "title": "Lucas Felipe Bezerra De Melo Oliveira"}, {"color": "orange", "id": "Augusto Vieira D\u2019Assun\u00e7\u00e3o Freitas", "label": "Augusto Vieira D\u2019Assun\u00e7\u00e3o Freitas", "shape": "dot", "size": 10, "title": "Augusto Vieira D\u2019Assun\u00e7\u00e3o Freitas"}, {"color": "red", "id": "Leandro Malard", "label": "Leandro Malard", "shape": "dot", "size": 10, "title": "Leandro Malard"}, {"color": "orange", "id": "Willyan Cardoso Santos Da Silva", "label": "Willyan Cardoso Santos Da Silva", "shape": "dot", "size": 10, "title": "Willyan Cardoso Santos Da Silva"}, {"color": "green", "id": "Danilo Machado", "label": "Danilo Machado", "shape": "dot", "size": 10, "title": "Danilo Machado"}, {"color": "orange", "id": "Barbara Alves Land Ferreira", "label": "Barbara Alves Land Ferreira", "shape": "dot", "size": 10, "title": "Barbara Alves Land Ferreira"}, {"color": "red", "id": "Simone Alexandre", "label": "Simone Alexandre", "shape": "dot", "size": 10, "title": "Simone Alexandre"}, {"color": "red", "id": "Luiz Cl\u00e1udio Carvalho", "label": "Luiz Cl\u00e1udio Carvalho", "shape": "dot", "size": 10, "title": "Luiz Cl\u00e1udio Carvalho"}, {"color": "orange", "id": "Davi Vasconcelos Coura Ferreira", "label": "Davi Vasconcelos Coura Ferreira", "shape": "dot", "size": 10, "title": "Davi Vasconcelos Coura Ferreira"}, {"color": "orange", "id": "Fabr\u00edcio Polignano Nogueira", "label": "Fabr\u00edcio Polignano Nogueira", "shape": "dot", "size": 10, "title": "Fabr\u00edcio Polignano Nogueira"}, {"color": "orange", "id": "Gabriel De Paula Barbosa", "label": "Gabriel De Paula Barbosa", "shape": "dot", "size": 10, "title": "Gabriel De Paula Barbosa"}, {"color": "orange", "id": "Leonardo Rodrigues Marques", "label": "Leonardo Rodrigues Marques", "shape": "dot", "size": 10, "title": "Leonardo Rodrigues Marques"}, {"color": "blue", "id": "Luiz Claudio De Carvalho", "label": "Luiz Claudio De Carvalho", "shape": "dot", "size": 10, "title": "Luiz Claudio De Carvalho"}, {"color": "orange", "id": "Breno Barbosa Moreira", "label": "Breno Barbosa Moreira", "shape": "dot", "size": 10, "title": "Breno Barbosa Moreira"}, {"color": "red", "id": "Karla Balzuweit", "label": "Karla Balzuweit", "shape": "dot", "size": 10, "title": "Karla Balzuweit"}, {"color": "blue", "id": "Jose Coelho Neto", "label": "Jose Coelho Neto", "shape": "dot", "size": 10, "title": "Jose Coelho Neto"}, {"color": "orange", "id": "Bruno Guimar\u00e3es Santana Gomes", "label": "Bruno Guimar\u00e3es Santana Gomes", "shape": "dot", "size": 10, "title": "Bruno Guimar\u00e3es Santana Gomes"}, {"color": "red", "id": "Ubirajara Agero", "label": "Ubirajara Agero", "shape": "dot", "size": 10, "title": "Ubirajara Agero"}, {"color": "orange", "id": "Jo\u00e3o Renato Vaz Pires", "label": "Jo\u00e3o Renato Vaz Pires", "shape": "dot", "size": 10, "title": "Jo\u00e3o Renato Vaz Pires"}, {"color": "orange", "id": "Sabrina Ferreira Dos Santos", "label": "Sabrina Ferreira Dos Santos", "shape": "dot", "size": 10, "title": "Sabrina Ferreira Dos Santos"}, {"color": "green", "id": "Jos\u00e9 Maria Caquito Junior", "label": "Jos\u00e9 Maria Caquito Junior", "shape": "dot", "size": 10, "title": "Jos\u00e9 Maria Caquito Junior"}, {"color": "green", "id": "Maria Luiza Barbosa Pertence", "label": "Maria Luiza Barbosa Pertence", "shape": "dot", "size": 10, "title": "Maria Luiza Barbosa Pertence"}, {"color": "orange", "id": "Daniel Aguiar Pinto", "label": "Daniel Aguiar Pinto", "shape": "dot", "size": 10, "title": "Daniel Aguiar Pinto"}, {"color": "red", "id": "Gl\u00e1uber Dorsch", "label": "Gl\u00e1uber Dorsch", "shape": "dot", "size": 10, "title": "Gl\u00e1uber Dorsch"}, {"color": "orange", "id": "Luiz Carlos Andrade De Miranda", "label": "Luiz Carlos Andrade De Miranda", "shape": "dot", "size": 10, "title": "Luiz Carlos Andrade De Miranda"}, {"color": "orange", "id": "Vitor Guilherme De Souza Pereira", "label": "Vitor Guilherme De Souza Pereira", "shape": "dot", "size": 10, "title": "Vitor Guilherme De Souza Pereira"}, {"color": "green", "id": "Arthur Cesar Dinali Viglioni", "label": "Arthur Cesar Dinali Viglioni", "shape": "dot", "size": 10, "title": "Arthur Cesar Dinali Viglioni"}, {"color": "orange", "id": "Diego Sier De Faria", "label": "Diego Sier De Faria", "shape": "dot", "size": 10, "title": "Diego Sier De Faria"}, {"color": "red", "id": "Ado Jorio", "label": "Ado Jorio", "shape": "dot", "size": 10, "title": "Ado Jorio"}, {"color": "green", "id": "Jane Elisa Rocha Guimar\u00e3es", "label": "Jane Elisa Rocha Guimar\u00e3es", "shape": "dot", "size": 10, "title": "Jane Elisa Rocha Guimar\u00e3es"}, {"color": "green", "id": "Lucas Valente De Carvalho", "label": "Lucas Valente De Carvalho", "shape": "dot", "size": 10, "title": "Lucas Valente De Carvalho"}, {"color": "green", "id": "Rafael Battistella Nadas", "label": "Rafael Battistella Nadas", "shape": "dot", "size": 10, "title": "Rafael Battistella Nadas"}, {"color": "blue", "id": "Paula D\u2019\u00c1vila Machado", "label": "Paula D\u2019\u00c1vila Machado", "shape": "dot", "size": 10, "title": "Paula D\u2019\u00c1vila Machado"}, {"color": "orange", "id": "Felipe De Morais Murta", "label": "Felipe De Morais Murta", "shape": "dot", "size": 10, "title": "Felipe De Morais Murta"}, {"color": "red", "id": "Leonardo Campos", "label": "Leonardo Campos", "shape": "dot", "size": 10, "title": "Leonardo Campos"}, {"color": "orange", "id": "Lucas Liberal Fonseca", "label": "Lucas Liberal Fonseca", "shape": "dot", "size": 10, "title": "Lucas Liberal Fonseca"}, {"color": "green", "id": "Gabriel Henrique Bargas Melo", "label": "Gabriel Henrique Bargas Melo", "shape": "dot", "size": 10, "title": "Gabriel Henrique Bargas Melo"}, {"color": "green", "id": "Maria Clara Godinho De Oliveira", "label": "Maria Clara Godinho De Oliveira", "shape": "dot", "size": 10, "title": "Maria Clara Godinho De Oliveira"}, {"color": "green", "id": "Tiago Campolina Barbosa", "label": "Tiago Campolina Barbosa", "shape": "dot", "size": 10, "title": "Tiago Campolina Barbosa"}, {"color": "blue", "id": "Yuri Hayashi Isayama", "label": "Yuri Hayashi Isayama", "shape": "dot", "size": 10, "title": "Yuri Hayashi Isayama"}, {"color": "orange", "id": "Fernanda Silva De Oliveira", "label": "Fernanda Silva De Oliveira", "shape": "dot", "size": 10, "title": "Fernanda Silva De Oliveira"}, {"color": "red", "id": "Silvia Helena Alencar", "label": "Silvia Helena Alencar", "shape": "dot", "size": 10, "title": "Silvia Helena Alencar"}, {"color": "orange", "id": "Lucas Galv\u00e3o De Jesus", "label": "Lucas Galv\u00e3o De Jesus", "shape": "dot", "size": 10, "title": "Lucas Galv\u00e3o De Jesus"}, {"color": "orange", "id": "Paola Gessy Oliveira De Melo", "label": "Paola Gessy Oliveira De Melo", "shape": "dot", "size": 10, "title": "Paola Gessy Oliveira De Melo"}, {"color": "orange", "id": "Pedro Brito Cavalcanti De Albuquerque", "label": "Pedro Brito Cavalcanti De Albuquerque", "shape": "dot", "size": 10, "title": "Pedro Brito Cavalcanti De Albuquerque"}, {"color": "orange", "id": "Thais Suelen Marques De Souza", "label": "Thais Suelen Marques De Souza", "shape": "dot", "size": 10, "title": "Thais Suelen Marques De Souza"}, {"color": "green", "id": "Barbara Silva Castel\u00f5es", "label": "Barbara Silva Castel\u00f5es", "shape": "dot", "size": 10, "title": "Barbara Silva Castel\u00f5es"}, {"color": "green", "id": "T\u00falio De Pinho Freitas", "label": "T\u00falio De Pinho Freitas", "shape": "dot", "size": 10, "title": "T\u00falio De Pinho Freitas"}, {"color": "blue", "id": "Bonnie Romano Zaire", "label": "Bonnie Romano Zaire", "shape": "dot", "size": 10, "title": "Bonnie Romano Zaire"}, {"color": "orange", "id": "Fernando Luiz Alves Jardim", "label": "Fernando Luiz Alves Jardim", "shape": "dot", "size": 10, "title": "Fernando Luiz Alves Jardim"}, {"color": "red", "id": "Carlos Bas\u00edlio", "label": "Carlos Bas\u00edlio", "shape": "dot", "size": 10, "title": "Carlos Bas\u00edlio"}, {"color": "orange", "id": "Lucas Olimpio Michel Machado", "label": "Lucas Olimpio Michel Machado", "shape": "dot", "size": 10, "title": "Lucas Olimpio Michel Machado"}, {"color": "green", "id": "Jo\u00e3o Alves De Oliveira Neto", "label": "Jo\u00e3o Alves De Oliveira Neto", "shape": "dot", "size": 10, "title": "Jo\u00e3o Alves De Oliveira Neto"}, {"color": "green", "id": "Juliana Assun\u00e7\u00e3o Pereira De Figueiredo", "label": "Juliana Assun\u00e7\u00e3o Pereira De Figueiredo", "shape": "dot", "size": 10, "title": "Juliana Assun\u00e7\u00e3o Pereira De Figueiredo"}, {"color": "blue", "id": "Monica Esperanza Bolivar Guarin", "label": "Monica Esperanza Bolivar Guarin", "shape": "dot", "size": 10, "title": "Monica Esperanza Bolivar Guarin"}, {"color": "orange", "id": "Franco Sauvisky", "label": "Franco Sauvisky", "shape": "dot", "size": 10, "title": "Franco Sauvisky"}, {"color": "red", "id": "Bernardo Neves", "label": "Bernardo Neves", "shape": "dot", "size": 10, "title": "Bernardo Neves"}, {"color": "orange", "id": "Luana De Avila Barbosa Oliveira", "label": "Luana De Avila Barbosa Oliveira", "shape": "dot", "size": 10, "title": "Luana De Avila Barbosa Oliveira"}, {"color": "blue", "id": "Karolline Aparecida De Souza Ara\u00fajo", "label": "Karolline Aparecida De Souza Ara\u00fajo", "shape": "dot", "size": 10, "title": "Karolline Aparecida De Souza Ara\u00fajo"}, {"color": "orange", "id": "Gabriel Batista Vila\u00e7a", "label": "Gabriel Batista Vila\u00e7a", "shape": "dot", "size": 10, "title": "Gabriel Batista Vila\u00e7a"}, {"color": "red", "id": "Nelson Yokomizo", "label": "Nelson Yokomizo", "shape": "dot", "size": 10, "title": "Nelson Yokomizo"}, {"color": "green", "id": "Filipe Henrique De Castro Menezes", "label": "Filipe Henrique De Castro Menezes", "shape": "dot", "size": 10, "title": "Filipe Henrique De Castro Menezes"}, {"color": "green", "id": "Jos\u00e9 Roberto Pereira Junior", "label": "Jos\u00e9 Roberto Pereira Junior", "shape": "dot", "size": 10, "title": "Jos\u00e9 Roberto Pereira Junior"}, {"color": "green", "id": "Lucas Mour\u00e3o Vieira Montese", "label": "Lucas Mour\u00e3o Vieira Montese", "shape": "dot", "size": 10, "title": "Lucas Mour\u00e3o Vieira Montese"}, {"color": "orange", "id": "Gabriel Henrique Aguiar Schiess", "label": "Gabriel Henrique Aguiar Schiess", "shape": "dot", "size": 10, "title": "Gabriel Henrique Aguiar Schiess"}, {"color": "red", "id": "Gerald Weber", "label": "Gerald Weber", "shape": "dot", "size": 10, "title": "Gerald Weber"}, {"color": "green", "id": "Daniel Batista De Jesus", "label": "Daniel Batista De Jesus", "shape": "dot", "size": 10, "title": "Daniel Batista De Jesus"}, {"color": "blue", "id": "Luciano Gabriel Silva", "label": "Luciano Gabriel Silva", "shape": "dot", "size": 10, "title": "Luciano Gabriel Silva"}, {"color": "orange", "id": "Guilherme Antonio De Souza", "label": "Guilherme Antonio De Souza", "shape": "dot", "size": 10, "title": "Guilherme Antonio De Souza"}, {"color": "red", "id": "Emmanuel Ara\u00fajo", "label": "Emmanuel Ara\u00fajo", "shape": "dot", "size": 10, "title": "Emmanuel Ara\u00fajo"}, {"color": "orange", "id": "Henrique De Melo Mansur", "label": "Henrique De Melo Mansur", "shape": "dot", "size": 10, "title": "Henrique De Melo Mansur"}, {"color": "red", "id": "Walber Hugo de Brito", "label": "Walber Hugo de Brito", "shape": "dot", "size": 10, "title": "Walber Hugo de Brito"}, {"color": "orange", "id": "Jesse De Oliveira Rodrigues Neto", "label": "Jesse De Oliveira Rodrigues Neto", "shape": "dot", "size": 10, "title": "Jesse De Oliveira Rodrigues Neto"}, {"color": "green", "id": "Felipe Amorim Borher", "label": "Felipe Amorim Borher", "shape": "dot", "size": 10, "title": "Felipe Amorim Borher"}, {"color": "green", "id": "Vitor Assun\u00e7\u00e3o Moreira Lima", "label": "Vitor Assun\u00e7\u00e3o Moreira Lima", "shape": "dot", "size": 10, "title": "Vitor Assun\u00e7\u00e3o Moreira Lima"}, {"color": "orange", "id": "Isadora Costa Coppo", "label": "Isadora Costa Coppo", "shape": "dot", "size": 10, "title": "Isadora Costa Coppo"}, {"color": "red", "id": "Ariete Righi", "label": "Ariete Righi", "shape": "dot", "size": 10, "title": "Ariete Righi"}, {"color": "red", "id": "Marcos Pimenta", "label": "Marcos Pimenta", "shape": "dot", "size": 10, "title": "Marcos Pimenta"}, {"color": "orange", "id": "Jhonatan Felipe Figueredo Vitor", "label": "Jhonatan Felipe Figueredo Vitor", "shape": "dot", "size": 10, "title": "Jhonatan Felipe Figueredo Vitor"}, {"color": "orange", "id": "Let\u00edcia Lima Rios Rioga", "label": "Let\u00edcia Lima Rios Rioga", "shape": "dot", "size": 10, "title": "Let\u00edcia Lima Rios Rioga"}, {"color": "orange", "id": "Thiago Seniuk Carrara", "label": "Thiago Seniuk Carrara", "shape": "dot", "size": 10, "title": "Thiago Seniuk Carrara"}, {"color": "green", "id": "Fabio Cardoso Ofredi Maia", "label": "Fabio Cardoso Ofredi Maia", "shape": "dot", "size": 10, "title": "Fabio Cardoso Ofredi Maia"}, {"color": "green", "id": "J\u00e9ssica Santos Lemos", "label": "J\u00e9ssica Santos Lemos", "shape": "dot", "size": 10, "title": "J\u00e9ssica Santos Lemos"}, {"color": "orange", "id": "Jo\u00e3o Batista Pinto Junior", "label": "Jo\u00e3o Batista Pinto Junior", "shape": "dot", "size": 10, "title": "Jo\u00e3o Batista Pinto Junior"}, {"color": "red", "id": "Jos\u00e9 Rachid Mohallem", "label": "Jos\u00e9 Rachid Mohallem", "shape": "dot", "size": 10, "title": "Jos\u00e9 Rachid Mohallem"}, {"color": "orange", "id": "Miguel Felipe De Abreu Rocha E Senra", "label": "Miguel Felipe De Abreu Rocha E Senra", "shape": "dot", "size": 10, "title": "Miguel Felipe De Abreu Rocha E Senra"}, {"color": "red", "id": "L\u00edvia Siman", "label": "L\u00edvia Siman", "shape": "dot", "size": 10, "title": "L\u00edvia Siman"}, {"color": "orange", "id": "Monique Hilda Costa", "label": "Monique Hilda Costa", "shape": "dot", "size": 10, "title": "Monique Hilda Costa"}, {"color": "green", "id": "Kennedy Batista Gon\u00e7alves", "label": "Kennedy Batista Gon\u00e7alves", "shape": "dot", "size": 10, "title": "Kennedy Batista Gon\u00e7alves"}, {"color": "blue", "id": "Iara Apolin\u00e1rio Borges", "label": "Iara Apolin\u00e1rio Borges", "shape": "dot", "size": 10, "title": "Iara Apolin\u00e1rio Borges"}, {"color": "orange", "id": "Jo\u00e3o Victor Roriz Saboya", "label": "Jo\u00e3o Victor Roriz Saboya", "shape": "dot", "size": 10, "title": "Jo\u00e3o Victor Roriz Saboya"}, {"color": "red", "id": "Gustavo Guerrero", "label": "Gustavo Guerrero", "shape": "dot", "size": 10, "title": "Gustavo Guerrero"}, {"color": "orange", "id": "Kevin Leonardo Amaral Resende", "label": "Kevin Leonardo Amaral Resende", "shape": "dot", "size": 10, "title": "Kevin Leonardo Amaral Resende"}, {"color": "orange", "id": "Luiza Alkmim D\u2019\u00c1vila Fonseca", "label": "Luiza Alkmim D\u2019\u00c1vila Fonseca", "shape": "dot", "size": 10, "title": "Luiza Alkmim D\u2019\u00c1vila Fonseca"}, {"color": "green", "id": "Guilherme Augusto Dias Monteiro", "label": "Guilherme Augusto Dias Monteiro", "shape": "dot", "size": 10, "title": "Guilherme Augusto Dias Monteiro"}, {"color": "green", "id": "Lucas De Souza Menicucci", "label": "Lucas De Souza Menicucci", "shape": "dot", "size": 10, "title": "Lucas De Souza Menicucci"}, {"color": "orange", "id": "Jo\u00e3o Victor Vieira E S\u00e1 Tolentino", "label": "Jo\u00e3o Victor Vieira E S\u00e1 Tolentino", "shape": "dot", "size": 10, "title": "Jo\u00e3o Victor Vieira E S\u00e1 Tolentino"}, {"color": "red", "id": "Bruce Vega", "label": "Bruce Vega", "shape": "dot", "size": 10, "title": "Bruce Vega"}, {"color": "orange", "id": "Marcos Paulo Moreira", "label": "Marcos Paulo Moreira", "shape": "dot", "size": 10, "title": "Marcos Paulo Moreira"}, {"color": "green", "id": "Bruno Avellar Couto E Silva", "label": "Bruno Avellar Couto E Silva", "shape": "dot", "size": 10, "title": "Bruno Avellar Couto E Silva"}, {"color": "green", "id": "Isaac Max Pereira", "label": "Isaac Max Pereira", "shape": "dot", "size": 10, "title": "Isaac Max Pereira"}, {"color": "green", "id": "Jo\u00e3o Pedro Carvalho Corr\u00eaa", "label": "Jo\u00e3o Pedro Carvalho Corr\u00eaa", "shape": "dot", "size": 10, "title": "Jo\u00e3o Pedro Carvalho Corr\u00eaa"}, {"color": "blue", "id": "Thaisa Carneiro Da Cunha Guio", "label": "Thaisa Carneiro Da Cunha Guio", "shape": "dot", "size": 10, "title": "Thaisa Carneiro Da Cunha Guio"}, {"color": "orange", "id": "Jo\u00e1s Jardim Marques Lacerda", "label": "Jo\u00e1s Jardim Marques Lacerda", "shape": "dot", "size": 10, "title": "Jo\u00e1s Jardim Marques Lacerda"}, {"color": "red", "id": "Carlos Henrique Monken", "label": "Carlos Henrique Monken", "shape": "dot", "size": 10, "title": "Carlos Henrique Monken"}, {"color": "orange", "id": "Matheus Aleluia Rodrigues", "label": "Matheus Aleluia Rodrigues", "shape": "dot", "size": 10, "title": "Matheus Aleluia Rodrigues"}, {"color": "blue", "id": "Alexandre Gutenberg Da Costa Moura", "label": "Alexandre Gutenberg Da Costa Moura", "shape": "dot", "size": 10, "title": "Alexandre Gutenberg Da Costa Moura"}, {"color": "orange", "id": "Julia Oliveira Santos", "label": "Julia Oliveira Santos", "shape": "dot", "size": 10, "title": "Julia Oliveira Santos"}, {"color": "red", "id": "Maria Carolina Aguiar", "label": "Maria Carolina Aguiar", "shape": "dot", "size": 10, "title": "Maria Carolina Aguiar"}, {"color": "orange", "id": "Maria Vitoria Tiago Inoc\u00eancio", "label": "Maria Vitoria Tiago Inoc\u00eancio", "shape": "dot", "size": 10, "title": "Maria Vitoria Tiago Inoc\u00eancio"}, {"color": "green", "id": "Nayara Gon\u00e7alves Gusm\u00e3o", "label": "Nayara Gon\u00e7alves Gusm\u00e3o", "shape": "dot", "size": 10, "title": "Nayara Gon\u00e7alves Gusm\u00e3o"}, {"color": "red", "id": "Ricardo Wagner Nunes", "label": "Ricardo Wagner Nunes", "shape": "dot", "size": 10, "title": "Ricardo Wagner Nunes"}, {"color": "green", "id": "Dayvison N\u00edcolas Santos Alves", "label": "Dayvison N\u00edcolas Santos Alves", "shape": "dot", "size": 10, "title": "Dayvison N\u00edcolas Santos Alves"}, {"color": "green", "id": "Hiago Maurilio Lopes Carvalho", "label": "Hiago Maurilio Lopes Carvalho", "shape": "dot", "size": 10, "title": "Hiago Maurilio Lopes Carvalho"}, {"color": "orange", "id": "Livia Maria Barros Campos", "label": "Livia Maria Barros Campos", "shape": "dot", "size": 10, "title": "Livia Maria Barros Campos"}, {"color": "red", "id": "Ana Maria de Paula", "label": "Ana Maria de Paula", "shape": "dot", "size": 10, "title": "Ana Maria de Paula"}, {"color": "green", "id": "Gladystone Rocha Da Fonseca", "label": "Gladystone Rocha Da Fonseca", "shape": "dot", "size": 10, "title": "Gladystone Rocha Da Fonseca"}, {"color": "blue", "id": "Danielle Cristina Teles Ferreira", "label": "Danielle Cristina Teles Ferreira", "shape": "dot", "size": 10, "title": "Danielle Cristina Teles Ferreira"}, {"color": "blue", "id": "Mychel Gon\u00e7alves Silva", "label": "Mychel Gon\u00e7alves Silva", "shape": "dot", "size": 10, "title": "Mychel Gon\u00e7alves Silva"}, {"color": "orange", "id": "Lucas Coelho Mitre", "label": "Lucas Coelho Mitre", "shape": "dot", "size": 10, "title": "Lucas Coelho Mitre"}, {"color": "red", "id": "Luiz Gustavo Can\u00e7ado", "label": "Luiz Gustavo Can\u00e7ado", "shape": "dot", "size": 10, "title": "Luiz Gustavo Can\u00e7ado"}, {"color": "green", "id": "Catarina Carvalho Haase", "label": "Catarina Carvalho Haase", "shape": "dot", "size": 10, "title": "Catarina Carvalho Haase"}, {"color": "green", "id": "Douglas Dos Santos Ribeiro", "label": "Douglas Dos Santos Ribeiro", "shape": "dot", "size": 10, "title": "Douglas Dos Santos Ribeiro"}, {"color": "green", "id": "Gustavo Henrique Rocha Soares", "label": "Gustavo Henrique Rocha Soares", "shape": "dot", "size": 10, "title": "Gustavo Henrique Rocha Soares"}, {"color": "green", "id": "Monalisa Kairine Pereira", "label": "Monalisa Kairine Pereira", "shape": "dot", "size": 10, "title": "Monalisa Kairine Pereira"}, {"color": "orange", "id": "Luisa Vargas Costa Freitas", "label": "Luisa Vargas Costa Freitas", "shape": "dot", "size": 10, "title": "Luisa Vargas Costa Freitas"}, {"color": "red", "id": "Angelo Malachias", "label": "Angelo Malachias", "shape": "dot", "size": 10, "title": "Angelo Malachias"}, {"color": "orange", "id": "Tulio Cesar Gon\u00e7alves Goulart", "label": "Tulio Cesar Gon\u00e7alves Goulart", "shape": "dot", "size": 10, "title": "Tulio Cesar Gon\u00e7alves Goulart"}, {"color": "orange", "id": "Yuri Bernardes Mar\u00e7al", "label": "Yuri Bernardes Mar\u00e7al", "shape": "dot", "size": 10, "title": "Yuri Bernardes Mar\u00e7al"}, {"color": "green", "id": "Eduarda Policarpo Magalh\u00e3es Campos", "label": "Eduarda Policarpo Magalh\u00e3es Campos", "shape": "dot", "size": 10, "title": "Eduarda Policarpo Magalh\u00e3es Campos"}, {"color": "green", "id": "Gabriel Rodrigues Fontenele", "label": "Gabriel Rodrigues Fontenele", "shape": "dot", "size": 10, "title": "Gabriel Rodrigues Fontenele"}, {"color": "green", "id": "Maria Victoria Heiderick Machado", "label": "Maria Victoria Heiderick Machado", "shape": "dot", "size": 10, "title": "Maria Victoria Heiderick Machado"}, {"color": "orange", "id": "Luiz Claudio De Oliveira Gomes Junior", "label": "Luiz Claudio De Oliveira Gomes Junior", "shape": "dot", "size": 10, "title": "Luiz Claudio De Oliveira Gomes Junior"}, {"color": "red", "id": "Raphael Drumond", "label": "Raphael Drumond", "shape": "dot", "size": 10, "title": "Raphael Drumond"}, {"color": "orange", "id": "Thiago Firpe Santos Souza", "label": "Thiago Firpe Santos Souza", "shape": "dot", "size": 10, "title": "Thiago Firpe Santos Souza"}, {"color": "green", "id": "Alessandra Chioquetta", "label": "Alessandra Chioquetta", "shape": "dot", "size": 10, "title": "Alessandra Chioquetta"}, {"color": "green", "id": "Breno Martins Dos Anjos", "label": "Breno Martins Dos Anjos", "shape": "dot", "size": 10, "title": "Breno Martins Dos Anjos"}, {"color": "green", "id": "Rodrigo Ferreira Saliba", "label": "Rodrigo Ferreira Saliba", "shape": "dot", "size": 10, "title": "Rodrigo Ferreira Saliba"}, {"color": "green", "id": "Vitor Monteiro Pereira", "label": "Vitor Monteiro Pereira", "shape": "dot", "size": 10, "title": "Vitor Monteiro Pereira"}, {"color": "orange", "id": "Marcos Gabriel Alpino Da Silva", "label": "Marcos Gabriel Alpino Da Silva", "shape": "dot", "size": 10, "title": "Marcos Gabriel Alpino Da Silva"}, {"color": "red", "id": "Reinaldo Vianna", "label": "Reinaldo Vianna", "shape": "dot", "size": 10, "title": "Reinaldo Vianna"}, {"color": "orange", "id": "Mateus Batista Pedrolongo", "label": "Mateus Batista Pedrolongo", "shape": "dot", "size": 10, "title": "Mateus Batista Pedrolongo"}, {"color": "red", "id": "Wagner Nunes Rodrigues", "label": "Wagner Nunes Rodrigues", "shape": "dot", "size": 10, "title": "Wagner Nunes Rodrigues"}, {"color": "orange", "id": "Tarik Della Santina Mohallem", "label": "Tarik Della Santina Mohallem", "shape": "dot", "size": 10, "title": "Tarik Della Santina Mohallem"}, {"color": "orange", "id": "Mateus Dos Santos Cardoso", "label": "Mateus Dos Santos Cardoso", "shape": "dot", "size": 10, "title": "Mateus Dos Santos Cardoso"}, {"color": "red", "id": "Edmar Soares", "label": "Edmar Soares", "shape": "dot", "size": 10, "title": "Edmar Soares"}, {"color": "blue", "id": "Pedro Henrique Rezende Gon\u00e7alves", "label": "Pedro Henrique Rezende Gon\u00e7alves", "shape": "dot", "size": 10, "title": "Pedro Henrique Rezende Gon\u00e7alves"}, {"color": "orange", "id": "Mayara Kalita Moura Gomides", "label": "Mayara Kalita Moura Gomides", "shape": "dot", "size": 10, "title": "Mayara Kalita Moura Gomides"}, {"color": "red", "id": "Gabriel Franco", "label": "Gabriel Franco", "shape": "dot", "size": 10, "title": "Gabriel Franco"}, {"color": "red", "id": "Paulo Henrique Amaral", "label": "Paulo Henrique Amaral", "shape": "dot", "size": 10, "title": "Paulo Henrique Amaral"}, {"color": "red", "id": "Sebasti\u00e3o de P\u00e1dua", "label": "Sebasti\u00e3o de P\u00e1dua", "shape": "dot", "size": 10, "title": "Sebasti\u00e3o de P\u00e1dua"}, {"color": "orange", "id": "Taynara Vit\u00f3ria De Souza", "label": "Taynara Vit\u00f3ria De Souza", "shape": "dot", "size": 10, "title": "Taynara Vit\u00f3ria De Souza"}, {"color": "green", "id": "Igo Gomes Mendes", "label": "Igo Gomes Mendes", "shape": "dot", "size": 10, "title": "Igo Gomes Mendes"}, {"color": "green", "id": "Patrick Matheus Ramos Lima", "label": "Patrick Matheus Ramos Lima", "shape": "dot", "size": 10, "title": "Patrick Matheus Ramos Lima"}, {"color": "green", "id": "Pedro Gabriel De Souza Das Dores", "label": "Pedro Gabriel De Souza Das Dores", "shape": "dot", "size": 10, "title": "Pedro Gabriel De Souza Das Dores"}, {"color": "orange", "id": "Thomas Miler Dos Santos", "label": "Thomas Miler Dos Santos", "shape": "dot", "size": 10, "title": "Thomas Miler Dos Santos"}, {"color": "red", "id": "Wagner Corradi", "label": "Wagner Corradi", "shape": "dot", "size": 10, "title": "Wagner Corradi"}, {"color": "red", "id": "Francisco Maia", "label": "Francisco Maia", "shape": "dot", "size": 10, "title": "Francisco Maia"}, {"color": "green", "id": "Pedro Henrique Ferreira De Britto Braz", "label": "Pedro Henrique Ferreira De Britto Braz", "shape": "dot", "size": 10, "title": "Pedro Henrique Ferreira De Britto Braz"}, {"color": "blue", "id": "Mateus De Souza Angelo", "label": "Mateus De Souza Angelo", "shape": "dot", "size": 10, "title": "Mateus De Souza Angelo"}, {"color": "green", "id": "Jo\u00e3o Francisco Gardin De Carvalho", "label": "Jo\u00e3o Francisco Gardin De Carvalho", "shape": "dot", "size": 10, "title": "Jo\u00e3o Francisco Gardin De Carvalho"}, {"color": "orange", "id": "Victor Hugo Silva De Paiva", "label": "Victor Hugo Silva De Paiva", "shape": "dot", "size": 10, "title": "Victor Hugo Silva De Paiva"}, {"color": "red", "id": "Juan Carlos Gonz\u00e1lez P\u00e9rez", "label": "Juan Carlos Gonz\u00e1lez P\u00e9rez", "shape": "dot", "size": 10, "title": "Juan Carlos Gonz\u00e1lez P\u00e9rez"}, {"color": "orange", "id": "Vinicius Aguiar Cardoso Godinho Baliza", "label": "Vinicius Aguiar Cardoso Godinho Baliza", "shape": "dot", "size": 10, "title": "Vinicius Aguiar Cardoso Godinho Baliza"}, {"color": "orange", "id": "Vitor De Melo Almada", "label": "Vitor De Melo Almada", "shape": "dot", "size": 10, "title": "Vitor De Melo Almada"}, {"color": "red", "id": "Paulo S\u00e9rgio Guimar\u00e3es", "label": "Paulo S\u00e9rgio Guimar\u00e3es", "shape": "dot", "size": 10, "title": "Paulo S\u00e9rgio Guimar\u00e3es"}, {"color": "green", "id": "Henrique Felipe De Melo", "label": "Henrique Felipe De Melo", "shape": "dot", "size": 10, "title": "Henrique Felipe De Melo"}, {"color": "green", "id": "Luis Elvis Cano Fernandez", "label": "Luis Elvis Cano Fernandez", "shape": "dot", "size": 10, "title": "Luis Elvis Cano Fernandez"}, {"color": "blue", "id": "Juliana Caldeira Brant", "label": "Juliana Caldeira Brant", "shape": "dot", "size": 10, "title": "Juliana Caldeira Brant"}, {"color": "blue", "id": "Rafael Ricardo Rojas Lopez", "label": "Rafael Ricardo Rojas Lopez", "shape": "dot", "size": 10, "title": "Rafael Ricardo Rojas Lopez"}, {"color": "green", "id": "Ana Luiza Novaes Dias", "label": "Ana Luiza Novaes Dias", "shape": "dot", "size": 10, "title": "Ana Luiza Novaes Dias"}, {"color": "red", "id": "Ronald Dickman", "label": "Ronald Dickman", "shape": "dot", "size": 10, "title": "Ronald Dickman"}, {"color": "green", "id": "Guilherme Eduardo Freire Oliveira", "label": "Guilherme Eduardo Freire Oliveira", "shape": "dot", "size": 10, "title": "Guilherme Eduardo Freire Oliveira"}, {"color": "green", "id": "Leonardo Santos Lopes", "label": "Leonardo Santos Lopes", "shape": "dot", "size": 10, "title": "Leonardo Santos Lopes"}, {"color": "green", "id": "Tiago Venzel Rosembach", "label": "Tiago Venzel Rosembach", "shape": "dot", "size": 10, "title": "Tiago Venzel Rosembach"}, {"color": "blue", "id": "Ingrid Carolina Ibagon Pardo", "label": "Ingrid Carolina Ibagon Pardo", "shape": "dot", "size": 10, "title": "Ingrid Carolina Ibagon Pardo"}, {"color": "green", "id": "Ana Paula Gomes Pereira", "label": "Ana Paula Gomes Pereira", "shape": "dot", "size": 10, "title": "Ana Paula Gomes Pereira"}, {"color": "red", "id": "Pablo Saldanha", "label": "Pablo Saldanha", "shape": "dot", "size": 10, "title": "Pablo Saldanha"}, {"color": "green", "id": "Tamiris Roberta Calixto", "label": "Tamiris Roberta Calixto", "shape": "dot", "size": 10, "title": "Tamiris Roberta Calixto"}, {"color": "green", "id": "Arilton Raimundo Souza Macedo", "label": "Arilton Raimundo Souza Macedo", "shape": "dot", "size": 10, "title": "Arilton Raimundo Souza Macedo"}, {"color": "red", "id": "Jo\u00e3o Ant\u00f4nio Plascak", "label": "Jo\u00e3o Ant\u00f4nio Plascak", "shape": "dot", "size": 10, "title": "Jo\u00e3o Ant\u00f4nio Plascak"}, {"color": "green", "id": "Gabriel De Albuquerque Silva", "label": "Gabriel De Albuquerque Silva", "shape": "dot", "size": 10, "title": "Gabriel De Albuquerque Silva"}, {"color": "green", "id": "Bernardo Pereira Lima Ferreira", "label": "Bernardo Pereira Lima Ferreira", "shape": "dot", "size": 10, "title": "Bernardo Pereira Lima Ferreira"}, {"color": "red", "id": "Jo\u00e3o Francisco Coelho", "label": "Jo\u00e3o Francisco Coelho", "shape": "dot", "size": 10, "title": "Jo\u00e3o Francisco Coelho"}, {"color": "green", "id": "Jos\u00e9 Eug\u00eanio Paes Scott Da Costa", "label": "Jos\u00e9 Eug\u00eanio Paes Scott Da Costa", "shape": "dot", "size": 10, "title": "Jos\u00e9 Eug\u00eanio Paes Scott Da Costa"}, {"color": "blue", "id": "Olavo Cosme Da Silva", "label": "Olavo Cosme Da Silva", "shape": "dot", "size": 10, "title": "Olavo Cosme Da Silva"}, {"color": "red", "id": "Alexis Aguirre", "label": "Alexis Aguirre", "shape": "dot", "size": 10, "title": "Alexis Aguirre"}, {"color": "green", "id": "Davi Bicalho Da Silva", "label": "Davi Bicalho Da Silva", "shape": "dot", "size": 10, "title": "Davi Bicalho Da Silva"}, {"color": "red", "id": "Lucas Mol", "label": "Lucas Mol", "shape": "dot", "size": 10, "title": "Lucas Mol"}, {"color": "green", "id": "Luiz Felipe Pedro Soares", "label": "Luiz Felipe Pedro Soares", "shape": "dot", "size": 10, "title": "Luiz Felipe Pedro Soares"}, {"color": "green", "id": "Enderson Emiliano Dos Reis", "label": "Enderson Emiliano Dos Reis", "shape": "dot", "size": 10, "title": "Enderson Emiliano Dos Reis"}, {"color": "red", "id": "Roberto Paniago", "label": "Roberto Paniago", "shape": "dot", "size": 10, "title": "Roberto Paniago"}, {"color": "blue", "id": "Gustavo Foscolo De Moura Gomes", "label": "Gustavo Foscolo De Moura Gomes", "shape": "dot", "size": 10, "title": "Gustavo Foscolo De Moura Gomes"}, {"color": "green", "id": "Everton Pereira De Andrade", "label": "Everton Pereira De Andrade", "shape": "dot", "size": 10, "title": "Everton Pereira De Andrade"}, {"color": "red", "id": "Gustavo Safar", "label": "Gustavo Safar", "shape": "dot", "size": 10, "title": "Gustavo Safar"}, {"color": "red", "id": "Rodrigo Gribel", "label": "Rodrigo Gribel", "shape": "dot", "size": 10, "title": "Rodrigo Gribel"}, {"color": "green", "id": "Renato Veloso Amaral Boaventura", "label": "Renato Veloso Amaral Boaventura", "shape": "dot", "size": 10, "title": "Renato Veloso Amaral Boaventura"}, {"color": "green", "id": "Tiago Amarante De Barros Cardoso", "label": "Tiago Amarante De Barros Cardoso", "shape": "dot", "size": 10, "title": "Tiago Amarante De Barros Cardoso"}, {"color": "blue", "id": "Cl\u00e1udio Laudares Passos Silva", "label": "Cl\u00e1udio Laudares Passos Silva", "shape": "dot", "size": 10, "title": "Cl\u00e1udio Laudares Passos Silva"}, {"color": "green", "id": "Gabriel Bruno Garcia De Souza", "label": "Gabriel Bruno Garcia De Souza", "shape": "dot", "size": 10, "title": "Gabriel Bruno Garcia De Souza"}, {"color": "red", "id": "Von Braun Nascimento", "label": "Von Braun Nascimento", "shape": "dot", "size": 10, "title": "Von Braun Nascimento"}, {"color": "red", "id": "Maxim Lavrentovich", "label": "Maxim Lavrentovich", "shape": "dot", "size": 10, "title": "Maxim Lavrentovich"}, {"color": "red", "id": "Mateus Angelo", "label": "Mateus Angelo", "shape": "dot", "size": 10, "title": "Mateus Angelo"}, {"color": "green", "id": "Pedro Gon\u00e7alves De Oliveira", "label": "Pedro Gon\u00e7alves De Oliveira", "shape": "dot", "size": 10, "title": "Pedro Gon\u00e7alves De Oliveira"}, {"color": "red", "id": "Ant\u00f4nio Sergio Pires", "label": "Ant\u00f4nio Sergio Pires", "shape": "dot", "size": 10, "title": "Ant\u00f4nio Sergio Pires"}, {"color": "green", "id": "Tassius Temistocles Lins Maciel", "label": "Tassius Temistocles Lins Maciel", "shape": "dot", "size": 10, "title": "Tassius Temistocles Lins Maciel"}, {"color": "red", "id": "Marcelo Terra Cunha", "label": "Marcelo Terra Cunha", "shape": "dot", "size": 10, "title": "Marcelo Terra Cunha"}, {"color": "blue", "id": "Bruno Henrique Da Silva E Mendon\u00e7a", "label": "Bruno Henrique Da Silva E Mendon\u00e7a", "shape": "dot", "size": 10, "title": "Bruno Henrique Da Silva E Mendon\u00e7a"}, {"color": "red", "id": "Helio Chacham", "label": "Helio Chacham", "shape": "dot", "size": 10, "title": "Helio Chacham"}, {"color": "blue", "id": "Camila Maria De Sousa Lacerda", "label": "Camila Maria De Sousa Lacerda", "shape": "dot", "size": 10, "title": "Camila Maria De Sousa Lacerda"}, {"color": "red", "id": "Fl\u00e1vio Orlando Plentz", "label": "Fl\u00e1vio Orlando Plentz", "shape": "dot", "size": 10, "title": "Fl\u00e1vio Orlando Plentz"}, {"color": "blue", "id": "Paulo Henrique Ribeiro Amaral", "label": "Paulo Henrique Ribeiro Amaral", "shape": "dot", "size": 10, "title": "Paulo Henrique Ribeiro Amaral"}, {"color": "red", "id": "Juan Carlos Gonz\u00e1lez Perez", "label": "Juan Carlos Gonz\u00e1lez Perez", "shape": "dot", "size": 10, "title": "Juan Carlos Gonz\u00e1lez Perez"}, {"color": "blue", "id": "Wescley Walison Valeriano", "label": "Wescley Walison Valeriano", "shape": "dot", "size": 10, "title": "Wescley Walison Valeriano"}, {"color": "orange", "id": "Barbara Regina Melo Ribeiro", "label": "Barbara Regina Melo Ribeiro", "shape": "dot", "size": 10, "title": "Barbara Regina Melo Ribeiro"}, {"color": "orange", "id": "Bruno Berganholi Dias", "label": "Bruno Berganholi Dias", "shape": "dot", "size": 10, "title": "Bruno Berganholi Dias"}, {"color": "orange", "id": "Daisy Andrews Pereira", "label": "Daisy Andrews Pereira", "shape": "dot", "size": 10, "title": "Daisy Andrews Pereira"}, {"color": "orange", "id": "Davi Ribeiro Matos Tiburcio da Silva", "label": "Davi Ribeiro Matos Tiburcio da Silva", "shape": "dot", "size": 10, "title": "Davi Ribeiro Matos Tiburcio da Silva"}, {"color": "orange", "id": "Dhieniffer Luane Silva Santos", "label": "Dhieniffer Luane Silva Santos", "shape": "dot", "size": 10, "title": "Dhieniffer Luane Silva Santos"}, {"color": "orange", "id": "Isabela Santos Silveira", "label": "Isabela Santos Silveira", "shape": "dot", "size": 10, "title": "Isabela Santos Silveira"}, {"color": "orange", "id": "Izabela Gon\u00e7alves Diniz", "label": "Izabela Gon\u00e7alves Diniz", "shape": "dot", "size": 10, "title": "Izabela Gon\u00e7alves Diniz"}, {"color": "orange", "id": "Jo\u00e3o Felipe Pinheiro Badar\u00f3 Moreira", "label": "Jo\u00e3o Felipe Pinheiro Badar\u00f3 Moreira", "shape": "dot", "size": 10, "title": "Jo\u00e3o Felipe Pinheiro Badar\u00f3 Moreira"}, {"color": "orange", "id": "Jo\u00e3o Felippe Nunes Rocha", "label": "Jo\u00e3o Felippe Nunes Rocha", "shape": "dot", "size": 10, "title": "Jo\u00e3o Felippe Nunes Rocha"}, {"color": "orange", "id": "Jo\u00e3o Vitor Teixeira do Prado Vital", "label": "Jo\u00e3o Vitor Teixeira do Prado Vital", "shape": "dot", "size": 10, "title": "Jo\u00e3o Vitor Teixeira do Prado Vital"}, {"color": "orange", "id": "Katson Wendell Oliveira Ar\u00e9vola", "label": "Katson Wendell Oliveira Ar\u00e9vola", "shape": "dot", "size": 10, "title": "Katson Wendell Oliveira Ar\u00e9vola"}, {"color": "orange", "id": "Lucas Martinho Bicalho Belo", "label": "Lucas Martinho Bicalho Belo", "shape": "dot", "size": 10, "title": "Lucas Martinho Bicalho Belo"}, {"color": "orange", "id": "Luciano da Silva Vilarins", "label": "Luciano da Silva Vilarins", "shape": "dot", "size": 10, "title": "Luciano da Silva Vilarins"}, {"color": "orange", "id": "Luiz Henrique de Paula Santos", "label": "Luiz Henrique de Paula Santos", "shape": "dot", "size": 10, "title": "Luiz Henrique de Paula Santos"}, {"color": "orange", "id": "Natalia Gon\u00e7alves de Paula Silva", "label": "Natalia Gon\u00e7alves de Paula Silva", "shape": "dot", "size": 10, "title": "Natalia Gon\u00e7alves de Paula Silva"}, {"color": "orange", "id": "No\u00e9lia Yesenia Rojas Cruz", "label": "No\u00e9lia Yesenia Rojas Cruz", "shape": "dot", "size": 10, "title": "No\u00e9lia Yesenia Rojas Cruz"}, {"color": "orange", "id": "Pedro Inacio de Carvalho Pereira Lacerda", "label": "Pedro Inacio de Carvalho Pereira Lacerda", "shape": "dot", "size": 10, "title": "Pedro Inacio de Carvalho Pereira Lacerda"}, {"color": "orange", "id": "Renan Mello Magalh\u00e3es", "label": "Renan Mello Magalh\u00e3es", "shape": "dot", "size": 10, "title": "Renan Mello Magalh\u00e3es"}, {"color": "orange", "id": "Vicente Vecce Lessa Navega Dias", "label": "Vicente Vecce Lessa Navega Dias", "shape": "dot", "size": 10, "title": "Vicente Vecce Lessa Navega Dias"}, {"color": "orange", "id": "Vitor Augusto Firmino Torres", "label": "Vitor Augusto Firmino Torres", "shape": "dot", "size": 10, "title": "Vitor Augusto Firmino Torres"}, {"color": "green", "id": "Hiram Souza Marinho Rodrigues", "label": "Hiram Souza Marinho Rodrigues", "shape": "dot", "size": 10, "title": "Hiram Souza Marinho Rodrigues"}, {"color": "green", "id": "Marcelo Francis Fernandes Alecrim", "label": "Marcelo Francis Fernandes Alecrim", "shape": "dot", "size": 10, "title": "Marcelo Francis Fernandes Alecrim"}]);
+                  edges = new vis.DataSet([{"from": "Alan Augusto Silva Sousa", "to": "Lucas Wardil", "width": 1}, {"from": "Lucas Wardil", "to": "Bryan Carolino Muniz Barbosa", "width": 1}, {"from": "Lucas Wardil", "to": "Gustavo Henrique Silva", "width": 1}, {"from": "Lucas Wardil", "to": "Jo\u00e3o Rafael De Souza Reis", "width": 1}, {"from": "Lucas Wardil", "to": "Daniel De Assis Rodrigues", "width": 1}, {"from": "Lucas Wardil", "to": "Ian Magalh\u00e3es Braga", "width": 1}, {"from": "Lucas Wardil", "to": "Alessandra Friedrich Lutz", "width": 1}, {"from": "Allan Gabriel Marques Lima", "to": "M\u00e1rio Mazzoni", "width": 1}, {"from": "M\u00e1rio Mazzoni", "to": "Andr\u00e9 Felipe Alves Alencar", "width": 1}, {"from": "M\u00e1rio Mazzoni", "to": "Deivide Kenede Esteves", "width": 1}, {"from": "M\u00e1rio Mazzoni", "to": "Juliana Rocha Freitas", "width": 1}, {"from": "M\u00e1rio Mazzoni", "to": "Paulo Henrique Miranda Ferreira", "width": 1}, {"from": "M\u00e1rio Mazzoni", "to": "Samuel Mendes De Vasconcelos", "width": 1}, {"from": "M\u00e1rio Mazzoni", "to": "T\u00falio Victor De Oliveira", "width": 1}, {"from": "M\u00e1rio Mazzoni", "to": "Welesson Henrique Natanal Silva", "width": 1}, {"from": "M\u00e1rio Mazzoni", "to": "Tassylla Oliveira Fonseca", "width": 1}, {"from": "Ana Carolina Dos Santos", "to": "Rog\u00e9rio Paniago", "width": 1}, {"from": "Rog\u00e9rio Paniago", "to": "Daniel Henriques Silva Fonseca", "width": 1}, {"from": "Rog\u00e9rio Paniago", "to": "Guilherme Rodrigues Fontenele", "width": 1}, {"from": "Rog\u00e9rio Paniago", "to": "Lucas Polesi Trindade", "width": 1}, {"from": "Andr\u00e9 Marques Da Costa", "to": "Leonardo Neves", "width": 1}, {"from": "Leonardo Neves", "to": "Erick Ribeiro De Carvalho", "width": 1}, {"from": "Leonardo Neves", "to": "Poliana Marques Berto", "width": 1}, {"from": "Leonardo Neves", "to": "Lucas Felipe Bezerra De Melo Oliveira", "width": 1}, {"from": "Augusto Vieira D\u2019Assun\u00e7\u00e3o Freitas", "to": "Leandro Malard", "width": 1}, {"from": "Leandro Malard", "to": "Willyan Cardoso Santos Da Silva", "width": 1}, {"from": "Leandro Malard", "to": "Danilo Machado", "width": 1}, {"from": "Barbara Alves Land Ferreira", "to": "Simone Alexandre", "width": 1}, {"from": "Barbara Alves Land Ferreira", "to": "Luiz Cl\u00e1udio Carvalho", "width": 1}, {"from": "Simone Alexandre", "to": "Davi Vasconcelos Coura Ferreira", "width": 1}, {"from": "Simone Alexandre", "to": "Fabr\u00edcio Polignano Nogueira", "width": 1}, {"from": "Simone Alexandre", "to": "Gabriel De Paula Barbosa", "width": 1}, {"from": "Simone Alexandre", "to": "Leonardo Rodrigues Marques", "width": 1}, {"from": "Simone Alexandre", "to": "Luiz Claudio De Carvalho", "width": 1}, {"from": "Breno Barbosa Moreira", "to": "Karla Balzuweit", "width": 1}, {"from": "Karla Balzuweit", "to": "Jose Coelho Neto", "width": 1}, {"from": "Bruno Guimar\u00e3es Santana Gomes", "to": "Ubirajara Agero", "width": 1}, {"from": "Ubirajara Agero", "to": "Jo\u00e3o Renato Vaz Pires", "width": 1}, {"from": "Ubirajara Agero", "to": "Sabrina Ferreira Dos Santos", "width": 1}, {"from": "Ubirajara Agero", "to": "Jos\u00e9 Maria Caquito Junior", "width": 1}, {"from": "Ubirajara Agero", "to": "Maria Luiza Barbosa Pertence", "width": 1}, {"from": "Daniel Aguiar Pinto", "to": "Gl\u00e1uber Dorsch", "width": 1}, {"from": "Gl\u00e1uber Dorsch", "to": "Luiz Carlos Andrade De Miranda", "width": 1}, {"from": "Gl\u00e1uber Dorsch", "to": "Vitor Guilherme De Souza Pereira", "width": 1}, {"from": "Gl\u00e1uber Dorsch", "to": "Arthur Cesar Dinali Viglioni", "width": 1}, {"from": "Diego Sier De Faria", "to": "Ado Jorio", "width": 1}, {"from": "Ado Jorio", "to": "Jane Elisa Rocha Guimar\u00e3es", "width": 1}, {"from": "Ado Jorio", "to": "Lucas Valente De Carvalho", "width": 1}, {"from": "Ado Jorio", "to": "Rafael Battistella Nadas", "width": 1}, {"from": "Ado Jorio", "to": "Paula D\u2019\u00c1vila Machado", "width": 1}, {"from": "Felipe De Morais Murta", "to": "Leonardo Campos", "width": 1}, {"from": "Leonardo Campos", "to": "Lucas Liberal Fonseca", "width": 1}, {"from": "Leonardo Campos", "to": "Gabriel Henrique Bargas Melo", "width": 1}, {"from": "Leonardo Campos", "to": "Maria Clara Godinho De Oliveira", "width": 1}, {"from": "Leonardo Campos", "to": "Tiago Campolina Barbosa", "width": 1}, {"from": "Leonardo Campos", "to": "Yuri Hayashi Isayama", "width": 1}, {"from": "Fernanda Silva De Oliveira", "to": "Silvia Helena Alencar", "width": 1}, {"from": "Silvia Helena Alencar", "to": "Lucas Galv\u00e3o De Jesus", "width": 1}, {"from": "Silvia Helena Alencar", "to": "Paola Gessy Oliveira De Melo", "width": 1}, {"from": "Silvia Helena Alencar", "to": "Pedro Brito Cavalcanti De Albuquerque", "width": 1}, {"from": "Silvia Helena Alencar", "to": "Thais Suelen Marques De Souza", "width": 1}, {"from": "Silvia Helena Alencar", "to": "Barbara Silva Castel\u00f5es", "width": 1}, {"from": "Silvia Helena Alencar", "to": "T\u00falio De Pinho Freitas", "width": 1}, {"from": "Silvia Helena Alencar", "to": "Bonnie Romano Zaire", "width": 1}, {"from": "Fernando Luiz Alves Jardim", "to": "Carlos Bas\u00edlio", "width": 1}, {"from": "Carlos Bas\u00edlio", "to": "Lucas Olimpio Michel Machado", "width": 1}, {"from": "Carlos Bas\u00edlio", "to": "Jo\u00e3o Alves De Oliveira Neto", "width": 1}, {"from": "Carlos Bas\u00edlio", "to": "Juliana Assun\u00e7\u00e3o Pereira De Figueiredo", "width": 1}, {"from": "Carlos Bas\u00edlio", "to": "Monica Esperanza Bolivar Guarin", "width": 1}, {"from": "Franco Sauvisky", "to": "Bernardo Neves", "width": 1}, {"from": "Bernardo Neves", "to": "Luana De Avila Barbosa Oliveira", "width": 1}, {"from": "Bernardo Neves", "to": "Karolline Aparecida De Souza Ara\u00fajo", "width": 1}, {"from": "Gabriel Batista Vila\u00e7a", "to": "Nelson Yokomizo", "width": 1}, {"from": "Nelson Yokomizo", "to": "Luiz Carlos Andrade De Miranda", "width": 1}, {"from": "Nelson Yokomizo", "to": "Filipe Henrique De Castro Menezes", "width": 1}, {"from": "Nelson Yokomizo", "to": "Jos\u00e9 Roberto Pereira Junior", "width": 1}, {"from": "Nelson Yokomizo", "to": "Lucas Mour\u00e3o Vieira Montese", "width": 1}, {"from": "Gabriel Henrique Aguiar Schiess", "to": "Gerald Weber", "width": 1}, {"from": "Gerald Weber", "to": "Daniel Batista De Jesus", "width": 1}, {"from": "Gerald Weber", "to": "Luciano Gabriel Silva", "width": 1}, {"from": "Guilherme Antonio De Souza", "to": "Emmanuel Ara\u00fajo", "width": 1}, {"from": "Henrique De Melo Mansur", "to": "Walber Hugo de Brito", "width": 1}, {"from": "Walber Hugo de Brito", "to": "Jesse De Oliveira Rodrigues Neto", "width": 1}, {"from": "Walber Hugo de Brito", "to": "Felipe Amorim Borher", "width": 1}, {"from": "Walber Hugo de Brito", "to": "Vitor Assun\u00e7\u00e3o Moreira Lima", "width": 1}, {"from": "Isadora Costa Coppo", "to": "Ariete Righi", "width": 1}, {"from": "Isadora Costa Coppo", "to": "Marcos Pimenta", "width": 1}, {"from": "Ariete Righi", "to": "Jhonatan Felipe Figueredo Vitor", "width": 1}, {"from": "Ariete Righi", "to": "Let\u00edcia Lima Rios Rioga", "width": 1}, {"from": "Ariete Righi", "to": "Thiago Seniuk Carrara", "width": 1}, {"from": "Ariete Righi", "to": "Fabio Cardoso Ofredi Maia", "width": 1}, {"from": "Ariete Righi", "to": "J\u00e9ssica Santos Lemos", "width": 1}, {"from": "Marcos Pimenta", "to": "J\u00e9ssica Santos Lemos", "width": 1}, {"from": "Jo\u00e3o Batista Pinto Junior", "to": "Jos\u00e9 Rachid Mohallem", "width": 1}, {"from": "Jos\u00e9 Rachid Mohallem", "to": "Miguel Felipe De Abreu Rocha E Senra", "width": 1}, {"from": "Jo\u00e3o Renato Vaz Pires", "to": "L\u00edvia Siman", "width": 1}, {"from": "L\u00edvia Siman", "to": "Monique Hilda Costa", "width": 1}, {"from": "L\u00edvia Siman", "to": "Kennedy Batista Gon\u00e7alves", "width": 1}, {"from": "L\u00edvia Siman", "to": "Maria Luiza Barbosa Pertence", "width": 1}, {"from": "L\u00edvia Siman", "to": "Iara Apolin\u00e1rio Borges", "width": 1}, {"from": "Jo\u00e3o Victor Roriz Saboya", "to": "Gustavo Guerrero", "width": 1}, {"from": "Gustavo Guerrero", "to": "Kevin Leonardo Amaral Resende", "width": 1}, {"from": "Gustavo Guerrero", "to": "Luiza Alkmim D\u2019\u00c1vila Fonseca", "width": 1}, {"from": "Gustavo Guerrero", "to": "Guilherme Augusto Dias Monteiro", "width": 1}, {"from": "Gustavo Guerrero", "to": "Lucas De Souza Menicucci", "width": 1}, {"from": "Jo\u00e3o Victor Vieira E S\u00e1 Tolentino", "to": "Bruce Vega", "width": 1}, {"from": "Bruce Vega", "to": "Marcos Paulo Moreira", "width": 1}, {"from": "Bruce Vega", "to": "Arthur Cesar Dinali Viglioni", "width": 1}, {"from": "Bruce Vega", "to": "Bruno Avellar Couto E Silva", "width": 1}, {"from": "Bruce Vega", "to": "Isaac Max Pereira", "width": 1}, {"from": "Bruce Vega", "to": "Jo\u00e3o Pedro Carvalho Corr\u00eaa", "width": 1}, {"from": "Bruce Vega", "to": "Thaisa Carneiro Da Cunha Guio", "width": 1}, {"from": "Jo\u00e1s Jardim Marques Lacerda", "to": "Carlos Henrique Monken", "width": 1}, {"from": "Carlos Henrique Monken", "to": "Matheus Aleluia Rodrigues", "width": 1}, {"from": "Carlos Henrique Monken", "to": "Alexandre Gutenberg Da Costa Moura", "width": 1}, {"from": "Julia Oliveira Santos", "to": "Maria Carolina Aguiar", "width": 1}, {"from": "Maria Carolina Aguiar", "to": "Maria Vitoria Tiago Inoc\u00eancio", "width": 1}, {"from": "Maria Carolina Aguiar", "to": "Nayara Gon\u00e7alves Gusm\u00e3o", "width": 1}, {"from": "Leonardo Rodrigues Marques", "to": "Ricardo Wagner Nunes", "width": 1}, {"from": "Ricardo Wagner Nunes", "to": "Dayvison N\u00edcolas Santos Alves", "width": 1}, {"from": "Ricardo Wagner Nunes", "to": "Hiago Maurilio Lopes Carvalho", "width": 1}, {"from": "Livia Maria Barros Campos", "to": "Ana Maria de Paula", "width": 1}, {"from": "Ana Maria de Paula", "to": "Gladystone Rocha Da Fonseca", "width": 1}, {"from": "Ana Maria de Paula", "to": "Danielle Cristina Teles Ferreira", "width": 1}, {"from": "Ana Maria de Paula", "to": "Mychel Gon\u00e7alves Silva", "width": 1}, {"from": "Lucas Coelho Mitre", "to": "Luiz Gustavo Can\u00e7ado", "width": 1}, {"from": "Luiz Gustavo Can\u00e7ado", "to": "Catarina Carvalho Haase", "width": 1}, {"from": "Luiz Gustavo Can\u00e7ado", "to": "Douglas Dos Santos Ribeiro", "width": 1}, {"from": "Luiz Gustavo Can\u00e7ado", "to": "Gustavo Henrique Rocha Soares", "width": 1}, {"from": "Luiz Gustavo Can\u00e7ado", "to": "Monalisa Kairine Pereira", "width": 1}, {"from": "Luisa Vargas Costa Freitas", "to": "Angelo Malachias", "width": 1}, {"from": "Angelo Malachias", "to": "Tulio Cesar Gon\u00e7alves Goulart", "width": 1}, {"from": "Angelo Malachias", "to": "Yuri Bernardes Mar\u00e7al", "width": 1}, {"from": "Angelo Malachias", "to": "Eduarda Policarpo Magalh\u00e3es Campos", "width": 1}, {"from": "Angelo Malachias", "to": "Gabriel Rodrigues Fontenele", "width": 1}, {"from": "Angelo Malachias", "to": "Juliana Rocha Freitas", "width": 1}, {"from": "Angelo Malachias", "to": "Maria Victoria Heiderick Machado", "width": 1}, {"from": "Luiz Claudio De Oliveira Gomes Junior", "to": "Raphael Drumond", "width": 1}, {"from": "Raphael Drumond", "to": "Thiago Firpe Santos Souza", "width": 1}, {"from": "Raphael Drumond", "to": "Alessandra Chioquetta", "width": 1}, {"from": "Raphael Drumond", "to": "Breno Martins Dos Anjos", "width": 1}, {"from": "Raphael Drumond", "to": "Rodrigo Ferreira Saliba", "width": 1}, {"from": "Raphael Drumond", "to": "Vitor Monteiro Pereira", "width": 1}, {"from": "Marcos Gabriel Alpino Da Silva", "to": "Reinaldo Vianna", "width": 1}, {"from": "Mateus Batista Pedrolongo", "to": "Wagner Nunes Rodrigues", "width": 1}, {"from": "Wagner Nunes Rodrigues", "to": "Tarik Della Santina Mohallem", "width": 1}, {"from": "Mateus Dos Santos Cardoso", "to": "Edmar Soares", "width": 1}, {"from": "Edmar Soares", "to": "Pedro Henrique Rezende Gon\u00e7alves", "width": 1}, {"from": "Mayara Kalita Moura Gomides", "to": "Gabriel Franco", "width": 1}, {"from": "Miguel Felipe De Abreu Rocha E Senra", "to": "Paulo Henrique Amaral", "width": 1}, {"from": "Poliana Marques Berto", "to": "Sebasti\u00e3o de P\u00e1dua", "width": 1}, {"from": "Sebasti\u00e3o de P\u00e1dua", "to": "Taynara Vit\u00f3ria De Souza", "width": 1}, {"from": "Sebasti\u00e3o de P\u00e1dua", "to": "Igo Gomes Mendes", "width": 1}, {"from": "Sebasti\u00e3o de P\u00e1dua", "to": "Patrick Matheus Ramos Lima", "width": 1}, {"from": "Sebasti\u00e3o de P\u00e1dua", "to": "Pedro Gabriel De Souza Das Dores", "width": 1}, {"from": "Thomas Miler Dos Santos", "to": "Wagner Corradi", "width": 1}, {"from": "Thomas Miler Dos Santos", "to": "Francisco Maia", "width": 1}, {"from": "Wagner Corradi", "to": "Pedro Henrique Ferreira De Britto Braz", "width": 1}, {"from": "Wagner Corradi", "to": "Mateus De Souza Angelo", "width": 1}, {"from": "Francisco Maia", "to": "Jo\u00e3o Francisco Gardin De Carvalho", "width": 1}, {"from": "Victor Hugo Silva De Paiva", "to": "Juan Carlos Gonz\u00e1lez P\u00e9rez", "width": 1}, {"from": "Juan Carlos Gonz\u00e1lez P\u00e9rez", "to": "Vinicius Aguiar Cardoso Godinho Baliza", "width": 1}, {"from": "Vitor De Melo Almada", "to": "Paulo S\u00e9rgio Guimar\u00e3es", "width": 1}, {"from": "Paulo S\u00e9rgio Guimar\u00e3es", "to": "Henrique Felipe De Melo", "width": 1}, {"from": "Paulo S\u00e9rgio Guimar\u00e3es", "to": "Luis Elvis Cano Fernandez", "width": 1}, {"from": "Paulo S\u00e9rgio Guimar\u00e3es", "to": "Juliana Caldeira Brant", "width": 1}, {"from": "Paulo S\u00e9rgio Guimar\u00e3es", "to": "Rafael Ricardo Rojas Lopez", "width": 1}, {"from": "Ana Luiza Novaes Dias", "to": "Ronald Dickman", "width": 1}, {"from": "Ronald Dickman", "to": "Guilherme Eduardo Freire Oliveira", "width": 1}, {"from": "Ronald Dickman", "to": "Leonardo Santos Lopes", "width": 1}, {"from": "Ronald Dickman", "to": "Tiago Venzel Rosembach", "width": 1}, {"from": "Ronald Dickman", "to": "Ingrid Carolina Ibagon Pardo", "width": 1}, {"from": "Ana Paula Gomes Pereira", "to": "Pablo Saldanha", "width": 1}, {"from": "Pablo Saldanha", "to": "Tamiris Roberta Calixto", "width": 1}, {"from": "Arilton Raimundo Souza Macedo", "to": "Jo\u00e3o Ant\u00f4nio Plascak", "width": 1}, {"from": "Jo\u00e3o Ant\u00f4nio Plascak", "to": "Gabriel De Albuquerque Silva", "width": 1}, {"from": "Bernardo Pereira Lima Ferreira", "to": "Jo\u00e3o Francisco Coelho", "width": 1}, {"from": "Jo\u00e3o Francisco Coelho", "to": "Jo\u00e3o Francisco Gardin De Carvalho", "width": 1}, {"from": "Jo\u00e3o Francisco Coelho", "to": "Jos\u00e9 Eug\u00eanio Paes Scott Da Costa", "width": 1}, {"from": "Jo\u00e3o Francisco Coelho", "to": "Olavo Cosme Da Silva", "width": 1}, {"from": "Bruno Avellar Couto E Silva", "to": "Alexis Aguirre", "width": 1}, {"from": "Davi Bicalho Da Silva", "to": "Lucas Mol", "width": 1}, {"from": "Lucas Mol", "to": "Luiz Felipe Pedro Soares", "width": 1}, {"from": "Enderson Emiliano Dos Reis", "to": "Roberto Paniago", "width": 1}, {"from": "Roberto Paniago", "to": "Gustavo Foscolo De Moura Gomes", "width": 1}, {"from": "Everton Pereira De Andrade", "to": "Gustavo Safar", "width": 1}, {"from": "Fabio Cardoso Ofredi Maia", "to": "Rodrigo Gribel", "width": 1}, {"from": "Rodrigo Gribel", "to": "Renato Veloso Amaral Boaventura", "width": 1}, {"from": "Rodrigo Gribel", "to": "Tiago Amarante De Barros Cardoso", "width": 1}, {"from": "Rodrigo Gribel", "to": "Tiago Campolina Barbosa", "width": 1}, {"from": "Rodrigo Gribel", "to": "Cl\u00e1udio Laudares Passos Silva", "width": 1}, {"from": "Gabriel Bruno Garcia De Souza", "to": "Von Braun Nascimento", "width": 1}, {"from": "Guilherme Eduardo Freire Oliveira", "to": "Maxim Lavrentovich", "width": 1}, {"from": "Jos\u00e9 Eug\u00eanio Paes Scott Da Costa", "to": "Mateus Angelo", "width": 1}, {"from": "Pedro Gon\u00e7alves De Oliveira", "to": "Ant\u00f4nio Sergio Pires", "width": 1}, {"from": "Tassius Temistocles Lins Maciel", "to": "Marcelo Terra Cunha", "width": 1}, {"from": "Bruno Henrique Da Silva E Mendon\u00e7a", "to": "Helio Chacham", "width": 1}, {"from": "Camila Maria De Sousa Lacerda", "to": "Fl\u00e1vio Orlando Plentz", "width": 1}, {"from": "Paulo Henrique Ribeiro Amaral", "to": "Juan Carlos Gonz\u00e1lez Perez", "width": 1}, {"from": "Juan Carlos Gonz\u00e1lez Perez", "to": "Wescley Walison Valeriano", "width": 1}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {
+    "configure": {
+        "enabled": false
+    },
+    "edges": {
+        "color": {
+            "inherit": true
+        },
+        "smooth": {
+            "enabled": true,
+            "type": "dynamic"
+        }
+    },
+    "interaction": {
+        "dragNodes": true,
+        "hideEdgesOnDrag": false,
+        "hideNodesOnDrag": false
+    },
+    "physics": {
+        "enabled": true,
+        "stabilization": {
+            "enabled": true,
+            "fit": true,
+            "iterations": 1000,
+            "onlyDynamicEdges": false,
+            "updateInterval": 50
+        }
+    }
+};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+                    network.on("selectNode", neighbourhoodHighlight);
+                  
+
+                  
+
+
+                  
+                      network.on("stabilizationProgress", function(params) {
+                          document.getElementById('loadingBar').removeAttribute("style");
+                          var maxWidth = 496;
+                          var minWidth = 20;
+                          var widthFactor = params.iterations/params.total;
+                          var width = Math.max(minWidth,maxWidth * widthFactor);
+                          document.getElementById('bar').style.width = width + 'px';
+                          document.getElementById('text').innerHTML = Math.round(widthFactor*100) + '%';
+                      });
+                      network.once("stabilizationIterationsDone", function() {
+                          document.getElementById('text').innerHTML = '100%';
+                          document.getElementById('bar').style.width = '496px';
+                          document.getElementById('loadingBar').style.opacity = 0;
+                          // really clean the dom element
+                          setTimeout(function () {document.getElementById('loadingBar').style.display = 'none';}, 500);
+                      });
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>
